@@ -203,7 +203,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           name: newTagName.trim(),
           color: '#8b5cf6', // Purple color for "Who" tags
-          category: 'Who',
+          category: 'who',
         }),
       });
 
@@ -441,7 +441,7 @@ export default function SettingsPage() {
               {/* List of custom Who tags */}
               <div className="space-y-2">
                 {tags
-                  .filter((tag) => tag.category === 'Who' && tag.household_id !== null)
+                  .filter((tag) => tag.category === 'who' && tag.household_id !== null)
                   .map((tag) => (
                     <div
                       key={tag.id}
@@ -465,7 +465,7 @@ export default function SettingsPage() {
                       </button>
                     </div>
                   ))}
-                {tags.filter((tag) => tag.category === 'Who' && tag.household_id !== null).length === 0 && (
+                {tags.filter((tag) => tag.category === 'who' && tag.household_id !== null).length === 0 && (
                   <p className="text-sm text-gray-500 text-center py-4">
                     No custom Who tags yet. Add one above!
                   </p>
