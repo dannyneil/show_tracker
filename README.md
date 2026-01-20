@@ -5,23 +5,27 @@ A family watchlist app for tracking movies and TV shows. Built with Next.js, Sup
 ## Features
 
 - **Quick Add**: Search TMDb database and add movies/TV shows to your watchlist
+- **Discover Trending**: "Find More" button shows what's hot on TMDb for quick discovery
 - **Smart Metadata**: Automatically fetches IMDB ratings, Rotten Tomatoes scores, and streaming availability
-- **Tagging System**: Organize shows with customizable tags (who it's for, genre, mood, etc.)
+- **Tagging System**: Organize shows with customizable tags (who it's for, genre, mood, ratings)
 - **Auto-Tagging**: TMDb genres are automatically mapped to your tag system
-- **Status Tracking**: Mark shows as "To Watch", "Watching", or "Watched"
-- **Filtering & Sorting**: Filter by status, tags, streaming service; sort by date, title, rating, or year
-- **AI Recommendations**: "Help Me Decide" uses Claude with web search to analyze critical consensus and recommend what to watch based on your taste
+- **Rating Tags**: Mark shows as "Loved", "Liked", or "Didn't Like" to improve AI recommendations
+- **Status Tracking**: Mark shows as "To Watch", "Watching", "Watched", or "Parked"
+- **Filtering & Sorting**: Filter by status, tags, streaming service
+- **AI Recommendations**: Two-tier system with quick picks and deep analysis using Claude with web search
+- **Persisted Recommendations**: Last recommendation is saved and displayed instantly on return visits
+- **Multi-Household Support**: Share your watchlist with family while keeping it separate from friends
 - **Magic Link Auth**: Passwordless authentication via Supabase
 
 ## Tech Stack
 
 - **Frontend**: Next.js 16 (App Router), React, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes
-- **Database**: Supabase (PostgreSQL)
+- **Database**: Supabase (PostgreSQL with Row Level Security)
 - **APIs**:
-  - [TMDb](https://www.themoviedb.org/documentation/api) - Movie/TV metadata, posters, genres
+  - [TMDb](https://www.themoviedb.org/documentation/api) - Movie/TV metadata, posters, genres, trending
   - [OMDb](https://www.omdbapi.com/) - IMDB ratings, Rotten Tomatoes scores
-  - [Anthropic Claude](https://docs.anthropic.com/) - AI recommendations with web search
+  - [Anthropic Claude](https://docs.anthropic.com/) - AI recommendations with extended thinking and web search
 
 ## Getting Started
 
@@ -35,7 +39,7 @@ A family watchlist app for tracking movies and TV shows. Built with Next.js, Sup
 ### 1. Clone and Install
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/dannyneil/show_tracker.git
 cd show_tracker
 npm install
 ```
@@ -64,12 +68,14 @@ ANTHROPIC_API_KEY=your_anthropic_api_key
 1. Create a new Supabase project at [supabase.com](https://supabase.com)
 2. Go to the SQL Editor in your Supabase dashboard
 3. Run the schema from `supabase/schema.sql` to create tables and seed data
+4. Run the migration from `supabase/migrations/001_add_households.sql` for multi-user support
 
 ### 4. Configure Authentication
 
-1. In Supabase Dashboard, go to Authentication > Providers
-2. Enable Email provider with "Magic Link" enabled
-3. Add your allowed email addresses under Authentication > Users (or configure allowed domains)
+1. In Supabase Dashboard, go to **Authentication > URL Configuration**
+2. Set **Site URL** to your production URL (e.g., `https://yourdomain.com`)
+3. Add your callback URL to **Redirect URLs**: `https://yourdomain.com/auth/callback`
+4. Enable Email provider with "Magic Link" enabled
 
 ### 5. Run the Development Server
 
@@ -85,55 +91,85 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 src/
 ├── app/
 │   ├── api/
-│   │   ├── decide/          # AI recommendation endpoint
-│   │   ├── search/          # TMDb search endpoint
-│   │   ├── shows/           # CRUD for shows
-│   │   │   ├── [id]/        # Individual show operations
-│   │   │   │   └── tags/    # Tag management for shows
-│   │   │   └── refresh-ratings/  # Batch refresh ratings
-│   │   └── tags/            # Tag management
+│   │   ├── decide/             # AI recommendation endpoint
+│   │   ├── household/          # Household management
+│   │   │   ├── invite/         # Invitation management
+│   │   │   └── member/         # Member management
+│   │   ├── search/             # TMDb search endpoint
+│   │   ├── shows/              # CRUD for shows
+│   │   │   ├── [id]/           # Individual show operations
+│   │   │   │   └── tags/       # Tag management for shows
+│   │   │   └── refresh-ratings/ # Batch refresh ratings
+│   │   ├── tags/               # Tag management
+│   │   └── trending/           # TMDb trending content
 │   ├── auth/
-│   │   └── callback/        # Magic link callback
-│   ├── login/               # Login page
-│   ├── layout.tsx           # Root layout
-│   └── page.tsx             # Main app page
+│   │   └── callback/           # Magic link callback
+│   ├── login/                  # Login page
+│   ├── settings/               # Account settings page
+│   ├── layout.tsx              # Root layout
+│   └── page.tsx                # Main app page
 ├── components/
-│   ├── AddShowModal.tsx     # Search and add shows
-│   ├── FilterBar.tsx        # Status/tag/service filters
-│   ├── HelpMeDecide.tsx     # AI recommendation modal
-│   ├── ShowCard.tsx         # Individual show display
-│   ├── ShowList.tsx         # Grid of show cards
-│   ├── StatusSelector.tsx   # Watch status dropdown
-│   └── TagBadge.tsx         # Tag display component
+│   ├── DecideHelper.tsx        # AI recommendation modal
+│   ├── DiscoverModal.tsx       # Trending content discovery
+│   ├── FilterBar.tsx           # Status/tag/service filters
+│   ├── SearchBar.tsx           # TMDb search component
+│   ├── ShowCard.tsx            # Individual show display
+│   ├── StatusSelector.tsx      # Watch status dropdown
+│   └── TagBadge.tsx            # Tag display component
 ├── lib/
-│   ├── claude.ts            # Anthropic API integration
-│   ├── omdb.ts              # OMDb API integration
-│   ├── supabase-browser.ts  # Supabase client (browser)
-│   ├── supabase-server.ts   # Supabase client (server)
-│   └── tmdb.ts              # TMDb API integration
+│   ├── claude.ts               # Anthropic API integration
+│   ├── omdb.ts                 # OMDb API integration
+│   ├── supabase.ts             # Supabase client (browser)
+│   ├── supabase-server.ts      # Supabase client (server)
+│   └── tmdb.ts                 # TMDb API integration
 ├── types/
-│   └── index.ts             # TypeScript type definitions
-└── middleware.ts            # Auth middleware
+│   └── index.ts                # TypeScript type definitions
+└── middleware.ts               # Auth middleware
 ```
 
 ## Database Schema
+
+### Households Table
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| name | text | Household name |
+| created_at | timestamp | Creation date |
+
+### Household Members Table
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| household_id | uuid | Reference to household |
+| user_id | uuid | Reference to auth.users |
+| email | text | Member email |
+| role | text | 'owner' or 'member' |
 
 ### Shows Table
 | Column | Type | Description |
 |--------|------|-------------|
 | id | uuid | Primary key |
+| household_id | uuid | Reference to household |
 | tmdb_id | integer | TMDb identifier |
 | title | text | Show title |
 | type | enum | 'movie' or 'tv' |
 | poster_url | text | TMDb poster URL |
 | year | integer | Release year |
 | overview | text | Description |
-| status | enum | 'to_watch', 'watching', 'watched' |
+| status | enum | 'to_watch', 'watching', 'watched', 'parked' |
 | imdb_rating | decimal | IMDB rating (0-10) |
 | rotten_tomatoes_score | integer | RT score (0-100) |
 | imdb_id | text | IMDB ID for linking |
 | streaming_services | jsonb | Array of service names |
-| ai_summary | text | AI-generated summary |
+
+### Recommendations Table
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| household_id | uuid | Reference to household |
+| quick_pick | text | Fast AI recommendation |
+| deep_analysis | text | Detailed AI recommendation |
+| updated_at | timestamp | Last update time |
 
 ### Tags Table
 | Column | Type | Description |
@@ -151,7 +187,7 @@ src/
 
 **Mood** (green): Light, Intense, Feel-good
 
-**Meta** (orange): Recommended, Must-watch, Liked
+**Meta** (orange/red/gray): Recommended, Must-watch, Liked, Loved, Didn't Like
 
 ## API Endpoints
 
@@ -165,23 +201,44 @@ src/
 | DELETE | /api/shows/[id]/tags | Remove tag from show |
 | POST | /api/shows/refresh-ratings | Refresh all ratings from OMDb |
 | GET | /api/search?q=query | Search TMDb for shows |
+| GET | /api/trending | Get trending movies/TV from TMDb |
 | GET | /api/tags | Get all tags |
-| POST | /api/decide | Get AI recommendations |
+| GET | /api/decide | Get last saved recommendation |
+| POST | /api/decide | Generate AI recommendations |
+| GET | /api/household | Get household info and members |
+| PATCH | /api/household | Update household name |
+| POST | /api/household/invite | Send invitation |
+| DELETE | /api/household/invite | Cancel invitation |
+| DELETE | /api/household/member | Remove member |
 
 ## AI Features
 
 ### Help Me Decide
 
-The recommendation engine uses Claude with:
+The recommendation engine offers two modes:
 
-- **Extended Thinking**: 8000 token budget for deeper reasoning about your preferences
-- **Web Search**: Looks up current critical reviews and audience reception
-- **Personalized Ranking**: Considers your liked shows and viewing history
+**Quick Pick** (Fast)
+- Uses Claude to analyze your watchlist and preferences
+- Considers your "Loved", "Liked", and "Didn't Like" ratings
+- Returns ranked recommendations in seconds
 
-The AI analyzes:
-1. How well each show matches your demonstrated tastes
-2. Current critical and audience consensus from reviews
-3. Notable praise or criticism to be aware of
+**Deep Analysis** (Thorough)
+- Uses Claude with extended thinking (4000 token budget)
+- Performs web searches for current critical reviews
+- Provides detailed reasoning with critic quotes
+- Takes longer but gives more comprehensive recommendations
+
+Both modes save results for instant access on your next visit.
+
+## Multi-Household Support
+
+The app supports multiple households (accounts) with shared access:
+
+1. **First user** who signs up becomes the **owner** of a new household
+2. **Owners can invite** family members by email in Settings
+3. **Invited users** automatically join the household when they sign up
+4. **All household members** see and can edit the same watchlist
+5. **Friends** get their own separate households with their own data
 
 ## Genre Auto-Tagging
 
@@ -216,6 +273,13 @@ Make sure to set all environment variables in your deployment platform:
 - `OMDB_API_KEY`
 - `ANTHROPIC_API_KEY`
 
+### Supabase Configuration
+
+For magic link authentication to work in production:
+1. Go to Supabase Dashboard > Authentication > URL Configuration
+2. Set **Site URL** to your production domain
+3. Add `https://yourdomain.com/auth/callback` to **Redirect URLs**
+
 ## License
 
-Private project for personal/family use.
+MIT License - Feel free to fork and customize for your own family!
