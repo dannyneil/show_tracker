@@ -5,7 +5,7 @@
 create extension if not exists "uuid-ossp";
 
 -- Create enum types
-create type show_status as enum ('to_watch', 'watching', 'watched');
+create type show_status as enum ('to_watch', 'watching', 'watched', 'parked');
 create type show_type as enum ('movie', 'tv');
 create type tag_category as enum ('who', 'genre', 'mood', 'meta');
 
@@ -44,6 +44,15 @@ create table show_tags (
   primary key (show_id, tag_id)
 );
 
+-- Recommendations cache (stores last recommendation for quick access)
+create table recommendations (
+  id uuid primary key default uuid_generate_v4(),
+  quick_pick text,
+  deep_analysis text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- Create indexes for performance
 create index idx_shows_status on shows(status);
 create index idx_shows_tmdb_id on shows(tmdb_id);
@@ -66,12 +75,18 @@ create trigger update_shows_updated_at
   for each row
   execute function update_updated_at_column();
 
+create trigger update_recommendations_updated_at
+  before update on recommendations
+  for each row
+  execute function update_updated_at_column();
+
 -- Row Level Security (RLS)
 -- For a shared household app with magic link auth, we allow authenticated users full access
 
 alter table shows enable row level security;
 alter table tags enable row level security;
 alter table show_tags enable row level security;
+alter table recommendations enable row level security;
 
 -- Policies for authenticated users
 create policy "Authenticated users can view shows" on shows
@@ -107,6 +122,18 @@ create policy "Authenticated users can insert show_tags" on show_tags
 create policy "Authenticated users can delete show_tags" on show_tags
   for delete using (auth.role() = 'authenticated');
 
+create policy "Authenticated users can view recommendations" on recommendations
+  for select using (auth.role() = 'authenticated');
+
+create policy "Authenticated users can insert recommendations" on recommendations
+  for insert with check (auth.role() = 'authenticated');
+
+create policy "Authenticated users can update recommendations" on recommendations
+  for update using (auth.role() = 'authenticated');
+
+create policy "Authenticated users can delete recommendations" on recommendations
+  for delete using (auth.role() = 'authenticated');
+
 -- Seed default tags
 insert into tags (name, color, category) values
   -- Who (blue shades)
@@ -130,4 +157,6 @@ insert into tags (name, color, category) values
   -- Meta (orange shades)
   ('Recommended', '#f97316', 'meta'),
   ('Must-watch', '#ea580c', 'meta'),
-  ('Liked', '#fb923c', 'meta');
+  ('Liked', '#fb923c', 'meta'),
+  ('Loved', '#ef4444', 'meta'),
+  ('Didn''t Like', '#6b7280', 'meta');

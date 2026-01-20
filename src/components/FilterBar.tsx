@@ -19,6 +19,7 @@ const statuses: { value: ShowStatus | 'all'; label: string; icon: string }[] = [
   { value: 'to_watch', label: 'To Watch', icon: '👀' },
   { value: 'watching', label: 'Watching', icon: '▶️' },
   { value: 'watched', label: 'Watched', icon: '✅' },
+  { value: 'parked', label: 'Parked', icon: '⏸️' },
 ];
 
 export default function FilterBar({

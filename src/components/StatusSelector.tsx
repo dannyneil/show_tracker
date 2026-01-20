@@ -27,6 +27,12 @@ const statuses: { value: ShowStatus; label: string; icon: string; activeClass: s
     icon: '✓',
     activeClass: 'bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/40 dark:to-green-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700 shadow-sm shadow-emerald-100 dark:shadow-none'
   },
+  {
+    value: 'parked',
+    label: 'Parked',
+    icon: '⏸️',
+    activeClass: 'bg-gradient-to-r from-gray-100 to-slate-100 dark:from-gray-800/60 dark:to-slate-800/60 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 shadow-sm shadow-gray-100 dark:shadow-none'
+  },
 ];
 
 export default function StatusSelector({ status, onChange, disabled }: StatusSelectorProps) {

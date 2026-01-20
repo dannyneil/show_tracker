@@ -41,71 +41,125 @@ Keep your response concise and helpful.`,
   return textContent?.text || 'Unable to generate summary.';
 }
 
+// Helper to format show list
+function formatShowList(shows: ShowWithTags[], includeRatings = false): string {
+  return shows
+    .map((s) => {
+      const parts = [`- "${s.title}" (${s.year || 'N/A'}) - ${s.type}`];
+      if (includeRatings) {
+        const ratings = [];
+        if (s.imdb_rating) ratings.push(`IMDB: ${s.imdb_rating}`);
+        if (s.rotten_tomatoes_score) ratings.push(`RT: ${s.rotten_tomatoes_score}%`);
+        if (ratings.length > 0) parts.push(`(${ratings.join(', ')})`);
+      }
+      const tags = s.tags.filter((t) => !['Loved', 'Liked', "Didn't Like"].includes(t.name));
+      if (tags.length > 0) parts.push(`[${tags.map((t) => t.name).join(', ')}]`);
+      return parts.join(' ');
+    })
+    .join('\n');
+}
+
+// Fast recommendation - no web search, uses existing ratings data
 export async function helpMeDecide(
+  lovedShows: ShowWithTags[],
   likedShows: ShowWithTags[],
+  dislikedShows: ShowWithTags[],
   toWatchShows: ShowWithTags[]
 ): Promise<string> {
   const client = getClient();
 
-  const likedList = likedShows
-    .map((s) => `- "${s.title}" (${s.year || 'N/A'}) - ${s.type}, tags: ${s.tags.map((t) => t.name).join(', ') || 'none'}`)
-    .join('\n');
+  const lovedList = formatShowList(lovedShows);
+  const likedList = formatShowList(likedShows);
+  const dislikedList = formatShowList(dislikedShows);
+  const toWatchList = formatShowList(toWatchShows, true);
 
-  const toWatchList = toWatchShows
-    .map((s) => {
-      const ratings = [];
-      if (s.imdb_rating) ratings.push(`IMDB: ${s.imdb_rating}`);
-      if (s.rotten_tomatoes_score) ratings.push(`RT: ${s.rotten_tomatoes_score}%`);
-      const ratingsStr = ratings.length > 0 ? ` (${ratings.join(', ')})` : '';
-      const services = s.streaming_services.length > 0 ? ` [${s.streaming_services.join(', ')}]` : '';
-      return `- "${s.title}" (${s.year || 'N/A'}) - ${s.type}${ratingsStr}${services}`;
-    })
-    .join('\n');
-
-  // Use extended thinking and web search for deeper analysis
   const message = await client.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 16000,
+    max_tokens: 1500,
+    messages: [
+      {
+        role: 'user',
+        content: `Help me decide what to watch next. Rank my watchlist based on my tastes.
+
+## Shows I LOVED (favorites):
+${lovedList || '(None yet)'}
+
+## Shows I Liked:
+${likedList || '(None yet)'}
+
+## Shows I Didn't Like (avoid similar):
+${dislikedList || '(None yet)'}
+
+## My Watchlist:
+${toWatchList}
+
+Give me a quick ranked list (top 3-5) with one sentence each explaining why. Prioritize shows similar to my loved/liked ones and avoid anything similar to what I didn't like. Format: **Title** - reason.`,
+      },
+    ],
+  });
+
+  const textContent = message.content.find((c) => c.type === 'text');
+  return textContent?.text || 'Unable to generate recommendations.';
+}
+
+// Deep analysis with web search for critical consensus
+export async function helpMeDecideDeep(
+  lovedShows: ShowWithTags[],
+  likedShows: ShowWithTags[],
+  dislikedShows: ShowWithTags[],
+  toWatchShows: ShowWithTags[]
+): Promise<string> {
+  const client = getClient();
+
+  const lovedList = formatShowList(lovedShows);
+  const likedList = formatShowList(likedShows);
+  const dislikedList = formatShowList(dislikedShows);
+  const toWatchList = formatShowList(toWatchShows, true);
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 8000,
     thinking: {
       type: 'enabled',
-      budget_tokens: 8000,
+      budget_tokens: 4000,
     },
     tools: [
       {
         type: 'web_search_20250305',
         name: 'web_search',
-        max_uses: 5,
+        max_uses: 3,
       },
     ],
     messages: [
       {
         role: 'user',
-        content: `I need help deciding what to watch. Based on shows I've enjoyed in the past, help me pick from my watchlist.
+        content: `I need help deciding what to watch. Search for reviews of my top watchlist items.
 
-## Shows I've Liked:
-${likedList || '(No liked shows yet - just give general recommendations)'}
+## Shows I LOVED (favorites):
+${lovedList || '(None yet)'}
 
-## My Watchlist (to choose from):
+## Shows I Liked:
+${likedList || '(None yet)'}
+
+## Shows I Didn't Like (avoid similar):
+${dislikedList || '(None yet)'}
+
+## My Watchlist:
 ${toWatchList}
 
-Please use web search to look up current critical reviews and audience reception for the shows on my watchlist. I want to understand the broader critical consensus - what do reviewers and audiences generally think about these shows?
+Search for critical reviews of the top 2-3 most promising shows from my watchlist. Then rank all shows with:
+- Why it matches my tastes (reference my loved/liked shows)
+- What critics say
+- Any caveats (especially if similar to my disliked shows)
 
-After researching, rank my watchlist from most to least recommended for me, considering:
-1. How well each show matches my tastes based on what I've liked
-2. The current critical and audience consensus
-3. Any notable praise or criticism from reviews
-
-For each recommendation, include:
-- A brief explanation of why I might enjoy it based on my tastes
-- What critics/audiences generally say about it
-- Any caveats or things to be aware of
-
-Format as a numbered list with each show's title in bold.`,
+Format as numbered list with **bold titles**.`,
       },
     ],
   });
 
-  // Extract the text response (may include thinking blocks which we don't show to user)
-  const textContent = message.content.find((c) => c.type === 'text');
-  return textContent?.text || 'Unable to generate recommendations.';
+  // Get all text blocks and concatenate them (web search produces multiple text blocks)
+  const textContents = message.content
+    .filter((c) => c.type === 'text')
+    .map((c) => (c as { type: 'text'; text: string }).text);
+  return textContents.join('\n\n') || 'Unable to generate recommendations.';
 }

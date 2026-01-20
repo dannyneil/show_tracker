@@ -14,6 +14,33 @@ interface ShowCardProps {
   onRemoveTag: (tagId: string) => void;
 }
 
+// Get streaming service search URL for a show
+function getStreamingUrl(service: string, title: string, type: 'movie' | 'tv'): string {
+  const encodedTitle = encodeURIComponent(title);
+
+  switch (service) {
+    case 'Netflix':
+      return `https://www.netflix.com/search?q=${encodedTitle}`;
+    case 'Hulu':
+      return `https://www.hulu.com/search?q=${encodedTitle}`;
+    case 'Prime Video':
+      return `https://www.amazon.com/s?k=${encodedTitle}&i=instant-video`;
+    case 'Disney+':
+      return `https://www.disneyplus.com/search/${encodedTitle}`;
+    case 'Max':
+      return `https://play.max.com/search?q=${encodedTitle}`;
+    case 'Peacock':
+      return `https://www.peacocktv.com/search?q=${encodedTitle}`;
+    case 'Apple TV+':
+      return `https://tv.apple.com/search?term=${encodedTitle}`;
+    case 'Paramount+':
+      return `https://www.paramountplus.com/search/?q=${encodedTitle}`;
+    default:
+      // Fallback to JustWatch search
+      return `https://www.justwatch.com/us/search?q=${encodedTitle}`;
+  }
+}
+
 export default function ShowCard({
   show,
   allTags,
@@ -117,12 +144,16 @@ export default function ShowCard({
           {show.streaming_services && show.streaming_services.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-3">
               {show.streaming_services.map((service) => (
-                <span
+                <a
                   key={service}
-                  className="text-xs px-2.5 py-1 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-750 rounded-lg text-gray-600 dark:text-gray-300 font-medium border border-gray-200/50 dark:border-gray-600/50"
+                  href={getStreamingUrl(service, show.title, show.type)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs px-2.5 py-1 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-750 rounded-lg text-gray-600 dark:text-gray-300 font-medium border border-gray-200/50 dark:border-gray-600/50 hover:from-indigo-50 hover:to-indigo-100 dark:hover:from-indigo-900/30 dark:hover:to-indigo-800/30 hover:text-indigo-600 dark:hover:text-indigo-300 hover:border-indigo-200 dark:hover:border-indigo-700 transition-all cursor-pointer"
+                  title={`Search on ${service}`}
                 >
                   {service}
-                </span>
+                </a>
               ))}
             </div>
           )}

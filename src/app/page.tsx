@@ -202,51 +202,55 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#f5f0e8] dark:bg-[#1a1918] bg-grid-pattern">
       {/* Header */}
-      <header className="bg-[#faf7f2]/90 dark:bg-[#252320]/90 backdrop-blur-lg border-b border-amber-200/30 dark:border-amber-900/20 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
+      <header className="bg-gradient-to-r from-[#faf7f2]/95 via-[#fdf9f3]/95 to-[#faf7f2]/95 dark:from-[#252320]/95 dark:via-[#2a2725]/95 dark:to-[#252320]/95 backdrop-blur-xl border-b border-amber-200/20 dark:border-amber-900/10 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14">
             {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-                <span className="text-xl">🎬</span>
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-md shadow-purple-500/20">
+                <span className="text-sm">🎬</span>
               </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  Neil&apos;s Reels
-                </h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Family Watchlist</p>
-              </div>
+              <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Neil&apos;s Reels
+              </h1>
+            </div>
+
+            {/* Center: Search */}
+            <div className="flex-1 max-w-xl mx-6 hidden sm:block">
+              <SearchBar onSelect={handleAddShow} />
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowDecideHelper(true)}
-                className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 flex items-center gap-2"
+                className="px-3 py-1.5 bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-500 hover:from-purple-600 hover:via-indigo-600 hover:to-purple-600 text-white text-sm font-medium rounded-lg transition-all shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30 flex items-center gap-1.5 bg-[length:200%_100%] hover:bg-right"
               >
-                <span>🎲</span>
-                <span className="hidden sm:inline">Help Me Decide</span>
+                <span className="text-xs">✨</span>
+                <span className="hidden sm:inline">Decide</span>
               </button>
               <button
                 onClick={handleLogout}
-                className="p-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
                 title="Sign Out"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
               </button>
             </div>
           </div>
 
-          {/* Search */}
-          <div className="mt-6 flex justify-center">
+          {/* Mobile search */}
+          <div className="pb-3 sm:hidden">
             <SearchBar onSelect={handleAddShow} />
           </div>
+
+          {/* Adding indicator */}
           {isAdding && (
-            <div className="mt-3 flex items-center justify-center gap-2 text-sm text-indigo-600 dark:text-indigo-400">
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent" />
-              Adding to your list...
+            <div className="pb-2 flex items-center justify-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
+              <div className="animate-spin rounded-full h-3 w-3 border-2 border-indigo-600 border-t-transparent" />
+              Adding...
             </div>
           )}
         </div>
@@ -257,7 +261,7 @@ export default function Home() {
         <div className="flex gap-8">
           {/* Sidebar filters */}
           <aside className="w-72 flex-shrink-0 hidden lg:block">
-            <div className="sticky top-28 bg-[#faf7f2]/80 dark:bg-[#252320]/80 backdrop-blur-lg rounded-2xl p-5 border border-amber-200/30 dark:border-amber-900/20 shadow-xl shadow-amber-900/5 dark:shadow-none">
+            <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto bg-[#faf7f2]/80 dark:bg-[#252320]/80 backdrop-blur-lg rounded-2xl p-5 border border-amber-200/30 dark:border-amber-900/20 shadow-xl shadow-amber-900/5 dark:shadow-none">
               <h2 className="font-semibold text-foreground mb-5 flex items-center gap-2">
                 <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
