@@ -90,6 +90,12 @@ export async function POST(request: NextRequest) {
     // Get household_id
     const householdId = await getHouseholdId(supabase);
 
+    if (!householdId) {
+      return NextResponse.json({
+        error: 'No household found. Please try logging out and back in, or contact support.'
+      }, { status: 403 });
+    }
+
     // Build the query for checking existing shows
     let existingQuery = supabase
       .from('shows')
