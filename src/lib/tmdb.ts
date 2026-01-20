@@ -133,6 +133,40 @@ export function getYear(dateString: string | undefined): number | null {
   return isNaN(year) ? null : year;
 }
 
+// Get official trailer for a movie or TV show
+export async function getTrailer(tmdbId: number, type: 'movie' | 'tv'): Promise<string | null> {
+  try {
+    const response = await fetch(
+      `${TMDB_BASE_URL}/${type}/${tmdbId}/videos`,
+      { headers: getAuthHeaders() }
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    const videos: Array<{
+      key: string;
+      site: string;
+      type: string;
+      official: boolean;
+    }> = data.results || [];
+
+    // Find official YouTube trailer
+    const trailer = videos.find(
+      (v) => v.site === 'YouTube' && v.type === 'Trailer' && v.official
+    ) || videos.find(
+      // Fallback: any YouTube trailer
+      (v) => v.site === 'YouTube' && v.type === 'Trailer'
+    );
+
+    return trailer ? trailer.key : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface TrendingItem {
   id: number;
   title: string;

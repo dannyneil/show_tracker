@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import type { ShowWithTags, ShowStatus, Tag } from '@/types';
 import TagBadge from './TagBadge';
 import StatusSelector from './StatusSelector';
+import TrailerModal from './TrailerModal';
 
 interface ShowCardProps {
   show: ShowWithTags;
@@ -49,9 +51,29 @@ export default function ShowCard({
   onAddTag,
   onRemoveTag,
 }: ShowCardProps) {
+  const [trailerKey, setTrailerKey] = useState<string | null>(null);
+  const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
+
   const availableTags = allTags.filter(
     (tag) => !show.tags.some((t) => t.id === tag.id)
   );
+
+  const handleWatchTrailer = async () => {
+    setIsLoadingTrailer(true);
+    try {
+      const response = await fetch(`/api/shows/${show.id}/trailer`);
+      if (response.ok) {
+        const data = await response.json();
+        setTrailerKey(data.trailerKey);
+      } else {
+        alert('No trailer available for this show');
+      }
+    } catch {
+      alert('Failed to load trailer');
+    } finally {
+      setIsLoadingTrailer(false);
+    }
+  };
 
   return (
     <div className="group relative bg-[#faf7f2]/80 dark:bg-[#252320]/80 backdrop-blur-lg rounded-2xl shadow-sm border border-amber-200/30 dark:border-amber-900/20 hover:shadow-xl hover:shadow-amber-900/10 dark:hover:shadow-none hover:border-amber-300/50 dark:hover:border-amber-800/30 transition-all duration-300 hover:z-10">
@@ -101,44 +123,62 @@ export default function ShowCard({
             </button>
           </div>
 
-          {/* Ratings */}
-          {(show.imdb_rating || show.rotten_tomatoes_score) && (
-            <div className="flex gap-3 mb-3">
-              {show.imdb_rating && (
-                <a
-                  href={show.imdb_id
-                    ? `https://www.imdb.com/title/${show.imdb_id}/`
-                    : `https://www.imdb.com/find/?q=${encodeURIComponent(show.title)}`
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/30 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
-                  title="View on IMDb"
-                >
-                  <span className="text-amber-600 dark:text-amber-400 font-bold text-xs">IMDb</span>
-                  <span className="font-semibold text-sm text-amber-700 dark:text-amber-300">{show.imdb_rating}</span>
-                  <svg className="w-3 h-3 text-amber-500 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          {/* Ratings and Trailer */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {show.imdb_rating && (
+              <a
+                href={show.imdb_id
+                  ? `https://www.imdb.com/title/${show.imdb_id}/`
+                  : `https://www.imdb.com/find/?q=${encodeURIComponent(show.title)}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/30 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer"
+                title="View on IMDb"
+              >
+                <span className="text-amber-600 dark:text-amber-400 font-bold text-xs">IMDb</span>
+                <span className="font-semibold text-sm text-amber-700 dark:text-amber-300">{show.imdb_rating}</span>
+                <svg className="w-3 h-3 text-amber-500 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            )}
+            {show.rotten_tomatoes_score && (
+              <a
+                href={`https://www.rottentomatoes.com/search?search=${encodeURIComponent(show.title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 dark:bg-red-900/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
+                title="View on Rotten Tomatoes"
+              >
+                <span className="text-red-600 dark:text-red-400 font-bold text-xs">RT</span>
+                <span className="font-semibold text-sm text-red-700 dark:text-red-300">{show.rotten_tomatoes_score}%</span>
+                <svg className="w-3 h-3 text-red-500 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            )}
+            <button
+              onClick={handleWatchTrailer}
+              disabled={isLoadingTrailer}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-lg hover:from-purple-100 hover:to-indigo-100 dark:hover:from-purple-900/50 dark:hover:to-indigo-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Watch Trailer"
+            >
+              {isLoadingTrailer ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs font-medium text-purple-600 dark:text-purple-400">Loading...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-3 h-3 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
                   </svg>
-                </a>
+                  <span className="text-xs font-medium text-purple-600 dark:text-purple-400">Trailer</span>
+                </>
               )}
-              {show.rotten_tomatoes_score && (
-                <a
-                  href={`https://www.rottentomatoes.com/search?search=${encodeURIComponent(show.title)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-2.5 py-1 bg-red-50 dark:bg-red-900/30 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
-                  title="View on Rotten Tomatoes"
-                >
-                  <span className="text-red-600 dark:text-red-400 font-bold text-xs">RT</span>
-                  <span className="font-semibold text-sm text-red-700 dark:text-red-300">{show.rotten_tomatoes_score}%</span>
-                  <svg className="w-3 h-3 text-red-500 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              )}
-            </div>
-          )}
+            </button>
+          </div>
 
           {/* Streaming Services */}
           {show.streaming_services && show.streaming_services.length > 0 && (
@@ -200,6 +240,15 @@ export default function ShowCard({
           </div>
         </div>
       </div>
+
+      {/* Trailer Modal */}
+      {trailerKey && (
+        <TrailerModal
+          trailerKey={trailerKey}
+          title={show.title}
+          onClose={() => setTrailerKey(null)}
+        />
+      )}
     </div>
   );
 }
