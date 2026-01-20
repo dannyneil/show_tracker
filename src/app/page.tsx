@@ -25,7 +25,6 @@ export default function Home() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
-  const [isRefreshingRatings, setIsRefreshingRatings] = useState(false);
   const [showDecideHelper, setShowDecideHelper] = useState(false);
   const [showDiscoverModal, setShowDiscoverModal] = useState(false);
 
@@ -166,25 +165,6 @@ export default function Home() {
     window.location.href = '/login';
   };
 
-  const handleRefreshRatings = async () => {
-    setIsRefreshingRatings(true);
-    try {
-      const response = await fetch('/api/shows/refresh-ratings', { method: 'POST' });
-      const data = await response.json();
-
-      if (data.updated > 0) {
-        // Refresh the shows list to get updated ratings
-        await fetchData();
-        alert(`Updated ratings for ${data.updated} shows!`);
-      } else {
-        alert(data.message || 'No ratings were updated');
-      }
-    } catch {
-      alert('Failed to refresh ratings');
-    }
-    setIsRefreshingRatings(false);
-  };
-
   // Filter shows
   const filteredShows = shows.filter((show) => {
     if (selectedStatus !== 'all' && show.status !== selectedStatus) return false;
@@ -310,25 +290,12 @@ export default function Home() {
 
           {/* Show list */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">Your Watchlist</h2>
-                <p className="text-sm text-gray-500">
-                  {filteredShows.length} {filteredShows.length === 1 ? 'show' : 'shows'}
-                  {selectedStatus !== 'all' && ` · ${selectedStatus.replace('_', ' ')}`}
-                </p>
-              </div>
-              <button
-                onClick={handleRefreshRatings}
-                disabled={isRefreshingRatings}
-                className="px-4 py-2 text-sm bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 dark:hover:from-amber-900/50 dark:hover:to-orange-900/50 text-amber-700 dark:text-amber-300 rounded-xl border border-amber-200/50 dark:border-amber-800/50 disabled:opacity-50 transition-all shadow-sm hover:shadow flex items-center gap-2"
-                title="Refresh IMDb & Rotten Tomatoes ratings"
-              >
-                <svg className={`w-4 h-4 ${isRefreshingRatings ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                {isRefreshingRatings ? 'Updating...' : 'Update Ratings'}
-              </button>
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-foreground">Your Watchlist</h2>
+              <p className="text-sm text-gray-500">
+                {filteredShows.length} {filteredShows.length === 1 ? 'show' : 'shows'}
+                {selectedStatus !== 'all' && ` · ${selectedStatus.replace('_', ' ')}`}
+              </p>
             </div>
 
             {filteredShows.length === 0 ? (

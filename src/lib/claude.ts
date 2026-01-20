@@ -59,13 +59,18 @@ function formatShowList(shows: ShowWithTags[], includeRatings = false): string {
     .join('\n');
 }
 
+export interface RecommendationResult {
+  response: string;
+  prompt: string;
+}
+
 // Fast recommendation - no web search, uses existing ratings data
 export async function helpMeDecide(
   lovedShows: ShowWithTags[],
   likedShows: ShowWithTags[],
   dislikedShows: ShowWithTags[],
   toWatchShows: ShowWithTags[]
-): Promise<string> {
+): Promise<RecommendationResult> {
   const client = getClient();
 
   const lovedList = formatShowList(lovedShows);
@@ -73,13 +78,7 @@ export async function helpMeDecide(
   const dislikedList = formatShowList(dislikedShows);
   const toWatchList = formatShowList(toWatchShows, true);
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 1500,
-    messages: [
-      {
-        role: 'user',
-        content: `Help me decide what to watch next. Rank my watchlist based on my tastes.
+  const prompt = `Help me decide what to watch next. Rank my watchlist based on my tastes.
 
 ## Shows I LOVED (favorites):
 ${lovedList || '(None yet)'}
@@ -93,13 +92,19 @@ ${dislikedList || '(None yet)'}
 ## My Watchlist:
 ${toWatchList}
 
-Give me a quick ranked list (top 3-5) with one sentence each explaining why. Prioritize shows similar to my loved/liked ones and avoid anything similar to what I didn't like. Format: **Title** - reason.`,
-      },
-    ],
+Give me a quick ranked list (top 3-5) with one sentence each explaining why. Prioritize shows similar to my loved/liked ones and avoid anything similar to what I didn't like. Format: **Title** - reason.`;
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1500,
+    messages: [{ role: 'user', content: prompt }],
   });
 
   const textContent = message.content.find((c) => c.type === 'text');
-  return textContent?.text || 'Unable to generate recommendations.';
+  return {
+    response: textContent?.text || 'Unable to generate recommendations.',
+    prompt,
+  };
 }
 
 // Deep analysis with web search for critical consensus
@@ -108,7 +113,7 @@ export async function helpMeDecideDeep(
   likedShows: ShowWithTags[],
   dislikedShows: ShowWithTags[],
   toWatchShows: ShowWithTags[]
-): Promise<string> {
+): Promise<RecommendationResult> {
   const client = getClient();
 
   const lovedList = formatShowList(lovedShows);
@@ -116,24 +121,7 @@ export async function helpMeDecideDeep(
   const dislikedList = formatShowList(dislikedShows);
   const toWatchList = formatShowList(toWatchShows, true);
 
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 8000,
-    thinking: {
-      type: 'enabled',
-      budget_tokens: 4000,
-    },
-    tools: [
-      {
-        type: 'web_search_20250305',
-        name: 'web_search',
-        max_uses: 3,
-      },
-    ],
-    messages: [
-      {
-        role: 'user',
-        content: `I need help deciding what to watch. Search for reviews of my top watchlist items.
+  const prompt = `I need help deciding what to watch. Search for reviews of my top watchlist items.
 
 ## Shows I LOVED (favorites):
 ${lovedList || '(None yet)'}
@@ -152,16 +140,33 @@ Search for critical reviews of the top 2-3 most promising shows from my watchlis
 - What critics say
 - Any caveats (especially if similar to my disliked shows)
 
-Format as numbered list with **bold titles**.`,
+Format as numbered list with **bold titles**.`;
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 8000,
+    thinking: {
+      type: 'enabled',
+      budget_tokens: 4000,
+    },
+    tools: [
+      {
+        type: 'web_search_20250305',
+        name: 'web_search',
+        max_uses: 3,
       },
     ],
+    messages: [{ role: 'user', content: prompt }],
   });
 
   // Get all text blocks and concatenate them (web search produces multiple text blocks)
   const textContents = message.content
     .filter((c) => c.type === 'text')
     .map((c) => (c as { type: 'text'; text: string }).text);
-  return textContents.join('\n\n') || 'Unable to generate recommendations.';
+  return {
+    response: textContents.join('\n\n') || 'Unable to generate recommendations.',
+    prompt,
+  };
 }
 
 // Clean up deep analysis output into a consistent, readable format

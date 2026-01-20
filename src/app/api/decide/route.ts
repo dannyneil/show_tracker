@@ -142,6 +142,38 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (toWatchShows.length === 0) {
+      const filterMsg = poolTagNames.length > 0
+        ? `No shows match your filters (to_watch + ${poolTagNames.join(' + ')}). Try different tags.`
+        : "Your watchlist is empty! Add some shows first, then come back for recommendations.";
+      const inputContext = {
+        lovedShows: lovedShows.map((s) => s.title),
+        likedShows: likedShows.map((s) => s.title),
+        dislikedShows: dislikedShows.map((s) => s.title),
+        poolShows: toWatchShows.map((s) => s.title),
+        filters: {
+          loved: lovedTagNames,
+          liked: likedTagNames,
+          disliked: dislikedTagNames,
+          pool: poolTagNames.length > 0 ? poolTagNames : ['(all to_watch)'],
+        },
+        prompt: null,
+      };
+      return NextResponse.json({ recommendation: filterMsg, inputContext });
+    }
+
+    // Use deep analysis with web search if requested, otherwise quick mode
+    const result = deep
+      ? await helpMeDecideDeep(lovedShows, likedShows, dislikedShows, toWatchShows)
+      : await helpMeDecide(lovedShows, likedShows, dislikedShows, toWatchShows);
+
+    let recommendation = result.response;
+
+    // Clean up deep analysis output for better formatting
+    if (deep) {
+      recommendation = await cleanupDeepAnalysis(recommendation);
+    }
+
     // Build input context for transparency
     const inputContext = {
       lovedShows: lovedShows.map((s) => s.title),
@@ -154,24 +186,8 @@ export async function POST(request: NextRequest) {
         disliked: dislikedTagNames,
         pool: poolTagNames.length > 0 ? poolTagNames : ['(all to_watch)'],
       },
+      prompt: result.prompt,
     };
-
-    if (toWatchShows.length === 0) {
-      const filterMsg = poolTagNames.length > 0
-        ? `No shows match your filters (to_watch + ${poolTagNames.join(' + ')}). Try different tags.`
-        : "Your watchlist is empty! Add some shows first, then come back for recommendations.";
-      return NextResponse.json({ recommendation: filterMsg, inputContext });
-    }
-
-    // Use deep analysis with web search if requested, otherwise quick mode
-    let recommendation = deep
-      ? await helpMeDecideDeep(lovedShows, likedShows, dislikedShows, toWatchShows)
-      : await helpMeDecide(lovedShows, likedShows, dislikedShows, toWatchShows);
-
-    // Clean up deep analysis output for better formatting
-    if (deep) {
-      recommendation = await cleanupDeepAnalysis(recommendation);
-    }
 
     // Save the recommendation to the database
     // First check if a record exists for this household

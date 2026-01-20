@@ -33,6 +33,7 @@ export default function SettingsPage() {
   const [isInviting, setIsInviting] = useState(false);
   const [householdName, setHouseholdName] = useState('');
   const [isSavingName, setIsSavingName] = useState(false);
+  const [isRefreshingRatings, setIsRefreshingRatings] = useState(false);
 
   useEffect(() => {
     fetchHousehold();
@@ -101,6 +102,23 @@ export default function SettingsPage() {
     } catch {
       alert('Failed to remove invitation');
     }
+  };
+
+  const handleRefreshRatings = async () => {
+    setIsRefreshingRatings(true);
+    try {
+      const response = await fetch('/api/shows/refresh-ratings', { method: 'POST' });
+      const data = await response.json();
+
+      if (data.updated > 0) {
+        alert(`Updated ratings for ${data.updated} shows!`);
+      } else {
+        alert(data.message || 'No ratings were updated');
+      }
+    } catch {
+      alert('Failed to refresh ratings');
+    }
+    setIsRefreshingRatings(false);
   };
 
   const handleRemoveMember = async (memberId: string) => {
@@ -314,6 +332,34 @@ export default function SettingsPage() {
                 )}
               </section>
             )}
+
+            {/* Data Management */}
+            <section className="bg-[#faf7f2]/80 dark:bg-[#252320]/80 backdrop-blur-lg rounded-2xl p-6 border border-amber-200/30 dark:border-amber-900/20 shadow-xl shadow-amber-900/5 dark:shadow-none">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                </svg>
+                Data Management
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <button
+                    onClick={handleRefreshRatings}
+                    disabled={isRefreshingRatings}
+                    className="px-4 py-2 text-sm bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 dark:hover:from-amber-900/50 dark:hover:to-orange-900/50 text-amber-700 dark:text-amber-300 rounded-xl border border-amber-200/50 dark:border-amber-800/50 disabled:opacity-50 transition-all shadow-sm hover:shadow flex items-center gap-2"
+                    title="Refresh IMDb & Rotten Tomatoes ratings for all shows"
+                  >
+                    <svg className={`w-4 h-4 ${isRefreshingRatings ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    {isRefreshingRatings ? 'Updating...' : 'Refresh Ratings'}
+                  </button>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Updates IMDb and Rotten Tomatoes ratings for all shows in your watchlist.
+                  </p>
+                </div>
+              </div>
+            </section>
           </div>
         ) : null}
       </main>

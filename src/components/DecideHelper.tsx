@@ -20,6 +20,7 @@ interface InputContext {
     disliked: string[];
     pool: string[];
   };
+  prompt: string | null;
 }
 
 interface DecideHelperProps {
@@ -398,40 +399,51 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                     {showInputContext ? 'Hide' : 'Show'} what was sent to Claude
                   </button>
                   {showInputContext && (
-                    <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-mono overflow-x-auto">
-                      <div className="space-y-2">
+                    <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs overflow-x-auto space-y-3">
+                      {inputContext.prompt && (
                         <div>
-                          <span className="text-gray-500 dark:text-gray-400">Filters: </span>
-                          <span className="text-gray-700 dark:text-gray-300">
-                            Loved={inputContext.filters.loved.join('+')} |
-                            Liked={inputContext.filters.liked.join('+')} |
-                            Disliked={inputContext.filters.disliked.join('+')} |
-                            Pool={inputContext.filters.pool.join('+')}
-                          </span>
+                          <div className="text-gray-500 dark:text-gray-400 font-semibold mb-1">Prompt sent to Claude:</div>
+                          <div className="whitespace-pre-wrap font-mono text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700">
+                            {inputContext.prompt}
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-green-600 dark:text-green-400">Loved ({inputContext.lovedShows.length}): </span>
-                          <span className="text-gray-700 dark:text-gray-300">
-                            {inputContext.lovedShows.length > 0 ? inputContext.lovedShows.join(', ') : '(none)'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-blue-600 dark:text-blue-400">Liked ({inputContext.likedShows.length}): </span>
-                          <span className="text-gray-700 dark:text-gray-300">
-                            {inputContext.likedShows.length > 0 ? inputContext.likedShows.join(', ') : '(none)'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-red-600 dark:text-red-400">Disliked ({inputContext.dislikedShows.length}): </span>
-                          <span className="text-gray-700 dark:text-gray-300">
-                            {inputContext.dislikedShows.length > 0 ? inputContext.dislikedShows.join(', ') : '(none)'}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-purple-600 dark:text-purple-400">Watchlist Pool ({inputContext.poolShows.length}): </span>
-                          <span className="text-gray-700 dark:text-gray-300">
-                            {inputContext.poolShows.length > 0 ? inputContext.poolShows.join(', ') : '(none)'}
-                          </span>
+                      )}
+                      <div>
+                        <div className="text-gray-500 dark:text-gray-400 font-semibold mb-1">Input Data:</div>
+                        <div className="font-mono space-y-2">
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Filters: </span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              Loved={inputContext.filters.loved.join('+')} |
+                              Liked={inputContext.filters.liked.join('+')} |
+                              Disliked={inputContext.filters.disliked.join('+')} |
+                              Pool={inputContext.filters.pool.join('+')}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-green-600 dark:text-green-400">Loved ({inputContext.lovedShows.length}): </span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {inputContext.lovedShows.length > 0 ? inputContext.lovedShows.join(', ') : '(none)'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-blue-600 dark:text-blue-400">Liked ({inputContext.likedShows.length}): </span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {inputContext.likedShows.length > 0 ? inputContext.likedShows.join(', ') : '(none)'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-red-600 dark:text-red-400">Disliked ({inputContext.dislikedShows.length}): </span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {inputContext.dislikedShows.length > 0 ? inputContext.dislikedShows.join(', ') : '(none)'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-purple-600 dark:text-purple-400">Watchlist Pool ({inputContext.poolShows.length}): </span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {inputContext.poolShows.length > 0 ? inputContext.poolShows.join(', ') : '(none)'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
