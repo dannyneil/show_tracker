@@ -132,3 +132,73 @@ export function getYear(dateString: string | undefined): number | null {
   const year = parseInt(dateString.split('-')[0], 10);
   return isNaN(year) ? null : year;
 }
+
+export interface TrendingItem {
+  id: number;
+  title: string;
+  type: 'movie' | 'tv';
+  poster_path: string | null;
+  release_date: string | null;
+  overview: string;
+  vote_average: number;
+}
+
+export async function getTrending(timeWindow: 'day' | 'week' = 'week'): Promise<TrendingItem[]> {
+  const [moviesRes, tvRes] = await Promise.all([
+    fetch(
+      `${TMDB_BASE_URL}/trending/movie/${timeWindow}`,
+      { headers: getAuthHeaders() }
+    ),
+    fetch(
+      `${TMDB_BASE_URL}/trending/tv/${timeWindow}`,
+      { headers: getAuthHeaders() }
+    ),
+  ]);
+
+  if (!moviesRes.ok || !tvRes.ok) {
+    throw new Error('Failed to fetch trending content');
+  }
+
+  const [moviesData, tvData] = await Promise.all([
+    moviesRes.json(),
+    tvRes.json(),
+  ]);
+
+  const movies: TrendingItem[] = moviesData.results.slice(0, 10).map((m: {
+    id: number;
+    title: string;
+    poster_path: string | null;
+    release_date?: string;
+    overview: string;
+    vote_average: number;
+  }) => ({
+    id: m.id,
+    title: m.title,
+    type: 'movie' as const,
+    poster_path: m.poster_path,
+    release_date: m.release_date || null,
+    overview: m.overview,
+    vote_average: m.vote_average,
+  }));
+
+  const tvShows: TrendingItem[] = tvData.results.slice(0, 10).map((t: {
+    id: number;
+    name: string;
+    poster_path: string | null;
+    first_air_date?: string;
+    overview: string;
+    vote_average: number;
+  }) => ({
+    id: t.id,
+    title: t.name,
+    type: 'tv' as const,
+    poster_path: t.poster_path,
+    release_date: t.first_air_date || null,
+    overview: t.overview,
+    vote_average: t.vote_average,
+  }));
+
+  // Interleave movies and TV shows, sorted by rating
+  const combined = [...movies, ...tvShows].sort((a, b) => b.vote_average - a.vote_average);
+  return combined.slice(0, 20);
+}

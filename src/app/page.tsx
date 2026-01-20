@@ -6,6 +6,7 @@ import SearchBar from '@/components/SearchBar';
 import ShowCard from '@/components/ShowCard';
 import FilterBar from '@/components/FilterBar';
 import DecideHelper from '@/components/DecideHelper';
+import DiscoverModal from '@/components/DiscoverModal';
 import type { ShowWithTags, Tag, ShowStatus } from '@/types';
 
 interface SearchResult {
@@ -24,6 +25,7 @@ export default function Home() {
   const [isAdding, setIsAdding] = useState(false);
   const [isRefreshingRatings, setIsRefreshingRatings] = useState(false);
   const [showDecideHelper, setShowDecideHelper] = useState(false);
+  const [showDiscoverModal, setShowDiscoverModal] = useState(false);
 
   // Filters
   const [selectedStatus, setSelectedStatus] = useState<ShowStatus | 'all'>('all');
@@ -223,6 +225,13 @@ export default function Home() {
             {/* Actions */}
             <div className="flex items-center gap-2">
               <button
+                onClick={() => setShowDiscoverModal(true)}
+                className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-sm font-medium rounded-lg transition-all shadow-md shadow-orange-500/20 hover:shadow-lg hover:shadow-orange-500/30 flex items-center gap-1.5"
+              >
+                <span className="text-xs">🔥</span>
+                <span className="hidden sm:inline">Find More</span>
+              </button>
+              <button
                 onClick={() => setShowDecideHelper(true)}
                 className="px-3 py-1.5 bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-500 hover:from-purple-600 hover:via-indigo-600 hover:to-purple-600 text-white text-sm font-medium rounded-lg transition-all shadow-md shadow-purple-500/20 hover:shadow-lg hover:shadow-purple-500/30 flex items-center gap-1.5 bg-[length:200%_100%] hover:bg-right"
               >
@@ -342,6 +351,24 @@ export default function Home() {
       {/* Decide Helper Modal */}
       {showDecideHelper && (
         <DecideHelper onClose={() => setShowDecideHelper(false)} />
+      )}
+
+      {/* Discover Modal */}
+      {showDiscoverModal && (
+        <DiscoverModal
+          onClose={() => setShowDiscoverModal(false)}
+          onAdd={async (show) => {
+            await handleAddShow({
+              tmdb_id: show.tmdb_id,
+              title: show.title,
+              type: show.type,
+              poster_url: show.poster_url,
+              year: show.year,
+              overview: show.overview,
+            });
+          }}
+          existingTmdbIds={shows.map((s) => s.tmdb_id)}
+        />
       )}
     </div>
   );
