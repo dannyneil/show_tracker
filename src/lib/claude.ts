@@ -163,3 +163,33 @@ Format as numbered list with **bold titles**.`,
     .map((c) => (c as { type: 'text'; text: string }).text);
   return textContents.join('\n\n') || 'Unable to generate recommendations.';
 }
+
+// Clean up deep analysis output into a consistent, readable format
+export async function cleanupDeepAnalysis(rawAnalysis: string): Promise<string> {
+  const client = getClient();
+
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2000,
+    messages: [
+      {
+        role: 'user',
+        content: `Clean up and format this recommendation analysis into a clear, consistent numbered list.
+
+Requirements:
+- Keep all the substantive content (show recommendations, reasons, critic opinions, caveats)
+- Format as a numbered list: 1., 2., 3., etc.
+- Each entry should have: **Title** followed by the recommendation text
+- Remove redundant headers, excessive line breaks, and formatting inconsistencies
+- Keep it concise but preserve key insights
+- Don't add new information, just reorganize what's there
+
+Raw analysis to clean up:
+${rawAnalysis}`,
+      },
+    ],
+  });
+
+  const textContent = message.content.find((c) => c.type === 'text');
+  return textContent?.text || rawAnalysis;
+}

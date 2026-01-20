@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { helpMeDecide, helpMeDecideDeep } from '@/lib/claude';
+import { helpMeDecide, helpMeDecideDeep, cleanupDeepAnalysis } from '@/lib/claude';
 import type { ShowWithTags, Tag } from '@/types';
 
 // Helper to get user's household_id
@@ -15,6 +15,40 @@ async function getHouseholdId(supabase: Awaited<ReturnType<typeof createServerSu
     .single();
 
   return membership?.household_id || null;
+}
+
+// Helper to get shows that have ALL the specified tags
+async function getShowsWithAllTags(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  tagIds: string[]
+): Promise<ShowWithTags[]> {
+  if (tagIds.length === 0) return [];
+
+  // Get shows that have all specified tags
+  const { data: shows } = await supabase
+    .from('shows')
+    .select(`
+      *,
+      show_tags (
+        tag_id,
+        tags (*)
+      )
+    `);
+
+  if (!shows) return [];
+
+  // Filter to shows that have ALL the specified tags
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return shows
+    .filter((show) => {
+      const showTagIds = show.show_tags?.map((st: { tag_id: string }) => st.tag_id) || [];
+      return tagIds.every((tagId) => showTagIds.includes(tagId));
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((show: any) => ({
+      ...show,
+      tags: show.show_tags?.map((st: { tags: Tag }) => st.tags) || [],
+    }));
 }
 
 // GET - Fetch the last saved recommendation
@@ -55,45 +89,34 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const deep = body.deep === true;
 
+    // Custom tag filters (arrays of tag names)
+    const lovedTagNames: string[] = body.lovedTags || ['Loved'];
+    const likedTagNames: string[] = body.likedTags || ['Liked'];
+    const dislikedTagNames: string[] = body.dislikedTags || ["Didn't Like"];
+    const poolTagNames: string[] = body.poolTags || []; // Additional tags to filter watchlist
+
     const supabase = await createServerSupabaseClient();
     const householdId = await getHouseholdId(supabase);
 
-    // Get rating tag IDs (Loved, Liked, Didn't Like)
-    const { data: ratingTags } = await supabase
-      .from('tags')
-      .select('id, name')
-      .in('name', ['Loved', 'Liked', "Didn't Like"]);
+    // Get all tags to map names to IDs
+    const { data: allTags } = await supabase.from('tags').select('id, name');
+    const tagNameToId = new Map(allTags?.map((t) => [t.name, t.id]) || []);
 
-    const lovedTagId = ratingTags?.find((t) => t.name === 'Loved')?.id;
-    const likedTagId = ratingTags?.find((t) => t.name === 'Liked')?.id;
-    const dislikedTagId = ratingTags?.find((t) => t.name === "Didn't Like")?.id;
+    // Convert tag names to IDs
+    const lovedTagIds = lovedTagNames.map((n) => tagNameToId.get(n)).filter(Boolean) as string[];
+    const likedTagIds = likedTagNames.map((n) => tagNameToId.get(n)).filter(Boolean) as string[];
+    const dislikedTagIds = dislikedTagNames.map((n) => tagNameToId.get(n)).filter(Boolean) as string[];
+    const poolTagIds = poolTagNames.map((n) => tagNameToId.get(n)).filter(Boolean) as string[];
 
-    // Get shows tagged as "Loved"
-    const { data: lovedShows } = lovedTagId
-      ? await supabase
-          .from('shows')
-          .select(`*, show_tags!inner (tag_id, tags (*))`)
-          .eq('show_tags.tag_id', lovedTagId)
-      : { data: [] };
+    // Get shows with the specified tags
+    const [lovedShows, likedShows, dislikedShows] = await Promise.all([
+      getShowsWithAllTags(supabase, lovedTagIds),
+      getShowsWithAllTags(supabase, likedTagIds),
+      getShowsWithAllTags(supabase, dislikedTagIds),
+    ]);
 
-    // Get shows tagged as "Liked"
-    const { data: likedShows } = likedTagId
-      ? await supabase
-          .from('shows')
-          .select(`*, show_tags!inner (tag_id, tags (*))`)
-          .eq('show_tags.tag_id', likedTagId)
-      : { data: [] };
-
-    // Get shows tagged as "Didn't Like"
-    const { data: dislikedShows } = dislikedTagId
-      ? await supabase
-          .from('shows')
-          .select(`*, show_tags!inner (tag_id, tags (*))`)
-          .eq('show_tags.tag_id', dislikedTagId)
-      : { data: [] };
-
-    // Get all to_watch shows
-    const { data: toWatchShows } = await supabase
+    // Get watchlist (to_watch shows), optionally filtered by additional tags
+    const { data: toWatchRaw } = await supabase
       .from('shows')
       .select(`
         *,
@@ -104,29 +127,51 @@ export async function POST(request: NextRequest) {
       `)
       .eq('status', 'to_watch');
 
-    // Transform the data - extract tags from show_tags relation
+    // Transform and filter pool shows
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const transformShow = (show: any): ShowWithTags => ({
+    let toWatchShows = (toWatchRaw || []).map((show: any): ShowWithTags => ({
       ...show,
       tags: show.show_tags?.map((st: { tags: Tag }) => st.tags) || [],
-    });
+    }));
 
-    const transformedLoved = (lovedShows || []).map(transformShow);
-    const transformedLiked = (likedShows || []).map(transformShow);
-    const transformedDisliked = (dislikedShows || []).map(transformShow);
-
-    const transformedToWatch = (toWatchShows || []).map(transformShow);
-
-    if (transformedToWatch.length === 0) {
-      return NextResponse.json({
-        recommendation: "Your watchlist is empty! Add some shows first, then come back for recommendations.",
+    // If pool tags specified, filter to shows that have ALL those tags
+    if (poolTagIds.length > 0) {
+      toWatchShows = toWatchShows.filter((show) => {
+        const showTagIds = show.tags.map((t) => t.id);
+        return poolTagIds.every((tagId) => showTagIds.includes(tagId));
       });
     }
 
+    // Build input context for transparency
+    const inputContext = {
+      lovedShows: lovedShows.map((s) => s.title),
+      likedShows: likedShows.map((s) => s.title),
+      dislikedShows: dislikedShows.map((s) => s.title),
+      poolShows: toWatchShows.map((s) => s.title),
+      filters: {
+        loved: lovedTagNames,
+        liked: likedTagNames,
+        disliked: dislikedTagNames,
+        pool: poolTagNames.length > 0 ? poolTagNames : ['(all to_watch)'],
+      },
+    };
+
+    if (toWatchShows.length === 0) {
+      const filterMsg = poolTagNames.length > 0
+        ? `No shows match your filters (to_watch + ${poolTagNames.join(' + ')}). Try different tags.`
+        : "Your watchlist is empty! Add some shows first, then come back for recommendations.";
+      return NextResponse.json({ recommendation: filterMsg, inputContext });
+    }
+
     // Use deep analysis with web search if requested, otherwise quick mode
-    const recommendation = deep
-      ? await helpMeDecideDeep(transformedLoved, transformedLiked, transformedDisliked, transformedToWatch)
-      : await helpMeDecide(transformedLoved, transformedLiked, transformedDisliked, transformedToWatch);
+    let recommendation = deep
+      ? await helpMeDecideDeep(lovedShows, likedShows, dislikedShows, toWatchShows)
+      : await helpMeDecide(lovedShows, likedShows, dislikedShows, toWatchShows);
+
+    // Clean up deep analysis output for better formatting
+    if (deep) {
+      recommendation = await cleanupDeepAnalysis(recommendation);
+    }
 
     // Save the recommendation to the database
     // First check if a record exists for this household
@@ -157,7 +202,7 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    return NextResponse.json({ recommendation, deep });
+    return NextResponse.json({ recommendation, deep, inputContext });
   } catch (error) {
     console.error('Error:', error);
     return NextResponse.json(
