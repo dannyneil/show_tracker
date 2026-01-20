@@ -4,12 +4,29 @@ import { getWatchProviders, getGenres } from '@/lib/tmdb';
 import { getRatings } from '@/lib/omdb';
 import type { ShowStatus, ShowType, Tag } from '@/types';
 
+// Helper to get user's household_id
+async function getHouseholdId(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: membership } = await supabase
+    .from('household_members')
+    .select('household_id')
+    .eq('user_id', user.id)
+    .single();
+
+  return membership?.household_id || null;
+}
+
 // GET all shows
 export async function GET() {
   try {
     const supabase = await createServerSupabaseClient();
 
-    const { data: shows, error } = await supabase
+    // Get household_id for filtering (RLS will also enforce this)
+    const householdId = await getHouseholdId(supabase);
+
+    let query = supabase
       .from('shows')
       .select(`
         *,
@@ -19,6 +36,13 @@ export async function GET() {
         )
       `)
       .order('created_at', { ascending: false });
+
+    // Filter by household if available
+    if (householdId) {
+      query = query.eq('household_id', householdId);
+    }
+
+    const { data: shows, error } = await query;
 
     if (error) {
       console.error('Error fetching shows:', error);
@@ -63,12 +87,20 @@ export async function POST(request: NextRequest) {
       status?: ShowStatus;
     } = body;
 
-    // Check if show already exists
-    const { data: existing } = await supabase
+    // Get household_id
+    const householdId = await getHouseholdId(supabase);
+
+    // Build the query for checking existing shows
+    let existingQuery = supabase
       .from('shows')
       .select('id')
-      .eq('tmdb_id', tmdb_id)
-      .single();
+      .eq('tmdb_id', tmdb_id);
+
+    if (householdId) {
+      existingQuery = existingQuery.eq('household_id', householdId);
+    }
+
+    const { data: existing } = await existingQuery.single();
 
     if (existing) {
       return NextResponse.json({ error: 'Show already in your list' }, { status: 409 });
@@ -81,7 +113,7 @@ export async function POST(request: NextRequest) {
       getGenres(tmdb_id, type).catch(() => []),
     ]);
 
-    // Insert the show
+    // Insert the show with household_id
     const { data: show, error } = await supabase
       .from('shows')
       .insert({
@@ -96,6 +128,7 @@ export async function POST(request: NextRequest) {
         imdb_rating: ratings.imdbRating,
         rotten_tomatoes_score: ratings.rottenTomatoesScore,
         imdb_id: ratings.imdbId,
+        household_id: householdId,
       })
       .select()
       .single();

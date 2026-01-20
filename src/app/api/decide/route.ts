@@ -3,17 +3,37 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { helpMeDecide, helpMeDecideDeep } from '@/lib/claude';
 import type { ShowWithTags, Tag } from '@/types';
 
+// Helper to get user's household_id
+async function getHouseholdId(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: membership } = await supabase
+    .from('household_members')
+    .select('household_id')
+    .eq('user_id', user.id)
+    .single();
+
+  return membership?.household_id || null;
+}
+
 // GET - Fetch the last saved recommendation
 export async function GET() {
   try {
     const supabase = await createServerSupabaseClient();
+    const householdId = await getHouseholdId(supabase);
 
-    const { data } = await supabase
+    let query = supabase
       .from('recommendations')
       .select('quick_pick, deep_analysis, updated_at')
       .order('updated_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
+
+    if (householdId) {
+      query = query.eq('household_id', householdId);
+    }
+
+    const { data } = await query.single();
 
     if (!data) {
       return NextResponse.json({ quickPick: null, deepAnalysis: null });
@@ -36,6 +56,7 @@ export async function POST(request: NextRequest) {
     const deep = body.deep === true;
 
     const supabase = await createServerSupabaseClient();
+    const householdId = await getHouseholdId(supabase);
 
     // Get rating tag IDs (Loved, Liked, Didn't Like)
     const { data: ratingTags } = await supabase
@@ -108,12 +129,17 @@ export async function POST(request: NextRequest) {
       : await helpMeDecide(transformedLoved, transformedLiked, transformedDisliked, transformedToWatch);
 
     // Save the recommendation to the database
-    // First check if a record exists
-    const { data: existing } = await supabase
+    // First check if a record exists for this household
+    let existingQuery = supabase
       .from('recommendations')
       .select('id')
-      .limit(1)
-      .single();
+      .limit(1);
+
+    if (householdId) {
+      existingQuery = existingQuery.eq('household_id', householdId);
+    }
+
+    const { data: existing } = await existingQuery.single();
 
     if (existing) {
       // Update existing record
@@ -122,10 +148,13 @@ export async function POST(request: NextRequest) {
         .update(deep ? { deep_analysis: recommendation } : { quick_pick: recommendation })
         .eq('id', existing.id);
     } else {
-      // Insert new record
+      // Insert new record with household_id
       await supabase
         .from('recommendations')
-        .insert(deep ? { deep_analysis: recommendation } : { quick_pick: recommendation });
+        .insert(deep
+          ? { deep_analysis: recommendation, household_id: householdId }
+          : { quick_pick: recommendation, household_id: householdId }
+        );
     }
 
     return NextResponse.json({ recommendation, deep });
