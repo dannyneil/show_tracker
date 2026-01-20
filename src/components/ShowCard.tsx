@@ -5,7 +5,6 @@ import Image from 'next/image';
 import type { ShowWithTags, ShowStatus, Tag } from '@/types';
 import TagBadge from './TagBadge';
 import StatusSelector from './StatusSelector';
-import TrailerModal from './TrailerModal';
 
 interface ShowCardProps {
   show: ShowWithTags;
@@ -51,7 +50,6 @@ export default function ShowCard({
   onAddTag,
   onRemoveTag,
 }: ShowCardProps) {
-  const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
 
   const availableTags = allTags.filter(
@@ -64,7 +62,7 @@ export default function ShowCard({
       const response = await fetch(`/api/shows/${show.id}/trailer`);
       if (response.ok) {
         const data = await response.json();
-        setTrailerKey(data.trailerKey);
+        window.open(`https://www.youtube.com/watch?v=${data.trailerKey}`, '_blank');
       } else {
         alert('No trailer available for this show');
       }
@@ -240,15 +238,6 @@ export default function ShowCard({
           </div>
         </div>
       </div>
-
-      {/* Trailer Modal */}
-      {trailerKey && (
-        <TrailerModal
-          trailerKey={trailerKey}
-          title={show.title}
-          onClose={() => setTrailerKey(null)}
-        />
-      )}
     </div>
   );
 }
