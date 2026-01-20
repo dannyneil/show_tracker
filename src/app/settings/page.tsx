@@ -16,6 +16,14 @@ interface Invitation {
   created_at: string;
 }
 
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  category: string;
+  household_id: string | null;
+}
+
 interface HouseholdData {
   household: { id: string; name: string };
   members: Member[];
@@ -35,8 +43,14 @@ export default function SettingsPage() {
   const [isSavingName, setIsSavingName] = useState(false);
   const [isRefreshingRatings, setIsRefreshingRatings] = useState(false);
 
+  // Tag management
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [newTagName, setNewTagName] = useState('');
+  const [isCreatingTag, setIsCreatingTag] = useState(false);
+
   useEffect(() => {
     fetchHousehold();
+    fetchTags();
   }, []);
 
   const fetchHousehold = async () => {
@@ -56,6 +70,18 @@ export default function SettingsPage() {
       setError('Failed to load settings');
     }
     setIsLoading(false);
+  };
+
+  const fetchTags = async () => {
+    try {
+      const response = await fetch('/api/tags');
+      if (response.ok) {
+        const allTags = await response.json();
+        setTags(allTags);
+      }
+    } catch (error) {
+      console.error('Failed to fetch tags:', error);
+    }
   };
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -163,6 +189,54 @@ export default function SettingsPage() {
       alert('Failed to update name');
     }
     setIsSavingName(false);
+  };
+
+  const handleCreateTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTagName.trim()) return;
+
+    setIsCreatingTag(true);
+    try {
+      const response = await fetch('/api/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newTagName.trim(),
+          color: '#8b5cf6', // Purple color for "Who" tags
+          category: 'Who',
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        alert(result.error || 'Failed to create tag');
+      } else {
+        setNewTagName('');
+        fetchTags();
+      }
+    } catch {
+      alert('Failed to create tag');
+    }
+    setIsCreatingTag(false);
+  };
+
+  const handleDeleteTag = async (tagId: string) => {
+    if (!confirm('Delete this tag? It will be removed from all shows.')) return;
+
+    try {
+      const response = await fetch(`/api/tags/${tagId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchTags();
+      } else {
+        const result = await response.json();
+        alert(result.error || 'Failed to delete tag');
+      }
+    } catch {
+      alert('Failed to delete tag');
+    }
   };
 
   const isOwner = data?.currentUserRole === 'owner';
@@ -332,6 +406,72 @@ export default function SettingsPage() {
                 )}
               </section>
             )}
+
+            {/* Who Tags */}
+            <section className="bg-[#faf7f2]/80 dark:bg-[#252320]/80 backdrop-blur-lg rounded-2xl p-6 border border-amber-200/30 dark:border-amber-900/20 shadow-xl shadow-amber-900/5 dark:shadow-none">
+              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Who Tags
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Create custom tags for family members to track who wants to watch what.
+              </p>
+
+              {/* Create new tag */}
+              <form onSubmit={handleCreateTag} className="flex gap-3 mb-4">
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  className="flex-1 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground"
+                  placeholder="e.g., Sarah, Mom, Kids"
+                  maxLength={20}
+                />
+                <button
+                  type="submit"
+                  disabled={isCreatingTag || !newTagName.trim()}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 text-white rounded-xl font-medium transition-colors"
+                >
+                  {isCreatingTag ? 'Adding...' : 'Add Tag'}
+                </button>
+              </form>
+
+              {/* List of custom Who tags */}
+              <div className="space-y-2">
+                {tags
+                  .filter((tag) => tag.category === 'Who' && tag.household_id !== null)
+                  .map((tag) => (
+                    <div
+                      key={tag.id}
+                      className="flex items-center justify-between p-3 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200/50 dark:border-gray-700/50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        <span className="font-medium text-foreground">{tag.name}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteTag(tag.id)}
+                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        title="Delete tag"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                {tags.filter((tag) => tag.category === 'Who' && tag.household_id !== null).length === 0 && (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No custom Who tags yet. Add one above!
+                  </p>
+                )}
+              </div>
+            </section>
 
             {/* Data Management */}
             <section className="bg-[#faf7f2]/80 dark:bg-[#252320]/80 backdrop-blur-lg rounded-2xl p-6 border border-amber-200/30 dark:border-amber-900/20 shadow-xl shadow-amber-900/5 dark:shadow-none">
