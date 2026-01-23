@@ -51,6 +51,9 @@ export default function ShowCard({
   onRemoveTag,
 }: ShowCardProps) {
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [comment, setComment] = useState(show.comment || '');
+  const [isSavingComment, setIsSavingComment] = useState(false);
 
   const availableTags = allTags.filter(
     (tag) => !show.tags.some((t) => t.id === tag.id)
@@ -70,6 +73,28 @@ export default function ShowCard({
       alert('Failed to load trailer');
     } finally {
       setIsLoadingTrailer(false);
+    }
+  };
+
+  const handleSaveComment = async () => {
+    setIsSavingComment(true);
+    try {
+      const response = await fetch(`/api/shows/${show.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: comment.trim() || null }),
+      });
+
+      if (response.ok) {
+        show.comment = comment.trim() || null;
+        setShowCommentInput(false);
+      } else {
+        alert('Failed to save comment');
+      }
+    } catch {
+      alert('Failed to save comment');
+    } finally {
+      setIsSavingComment(false);
     }
   };
 
@@ -197,7 +222,7 @@ export default function ShowCard({
           )}
 
           {/* Tags */}
-          <div className="flex flex-wrap gap-1.5 mb-4">
+          <div className="flex flex-wrap gap-1.5 mb-3">
             {show.tags.map((tag) => (
               <TagBadge
                 key={tag.id}
@@ -227,6 +252,70 @@ export default function ShowCard({
                       ))}
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Comment */}
+          <div className="mb-4">
+            {!showCommentInput && !show.comment && (
+              <button
+                onClick={() => {
+                  setShowCommentInput(true);
+                  setComment(show.comment || '');
+                }}
+                className="text-xs flex items-center gap-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
+                Add note
+              </button>
+            )}
+            {!showCommentInput && show.comment && (
+              <div
+                onClick={() => {
+                  setShowCommentInput(true);
+                  setComment(show.comment || '');
+                }}
+                className="text-xs p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200/50 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <div className="flex items-start gap-1.5">
+                  <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                  </svg>
+                  <span className="flex-1">{show.comment}</span>
+                </div>
+              </div>
+            )}
+            {showCommentInput && (
+              <div className="space-y-2">
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Add a note (e.g., 'Great aesthetic but very violent')"
+                  className="w-full text-xs p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground resize-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  rows={2}
+                  maxLength={500}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveComment}
+                    disabled={isSavingComment}
+                    className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                  >
+                    {isSavingComment ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowCommentInput(false);
+                      setComment(show.comment || '');
+                    }}
+                    className="text-xs px-3 py-1.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             )}

@@ -54,6 +54,7 @@ function formatShowList(shows: ShowWithTags[], includeRatings = false): string {
       }
       const tags = s.tags.filter((t) => !['Loved', 'Liked', "Didn't Like"].includes(t.name));
       if (tags.length > 0) parts.push(`[${tags.map((t) => t.name).join(', ')}]`);
+      if (s.comment) parts.push(`— Note: "${s.comment}"`);
       return parts.join(' ');
     })
     .join('\n');
@@ -91,6 +92,8 @@ ${dislikedList || '(None yet)'}
 
 ## My Watchlist:
 ${toWatchList}
+
+IMPORTANT: Pay attention to any notes I've included (e.g., "Great aesthetic but very violent"). These notes provide important context about my preferences and concerns. Use them to refine recommendations and warn about similar traits in watchlist shows.
 
 Give me a quick ranked list (top 3-5) with one sentence each explaining why. Prioritize shows similar to my loved/liked ones and avoid anything similar to what I didn't like. Format: **Title** - reason.`;
 
@@ -135,10 +138,12 @@ ${dislikedList || '(None yet)'}
 ## My Watchlist:
 ${toWatchList}
 
+IMPORTANT: Pay attention to any notes I've included (e.g., "Great aesthetic but very violent"). These notes provide crucial context about my preferences and concerns. Use them to refine recommendations and warn about similar traits.
+
 Search for critical reviews of the top 2-3 most promising shows from my watchlist. Then rank all shows with:
-- Why it matches my tastes (reference my loved/liked shows)
+- Why it matches my tastes (reference my loved/liked shows and my notes)
 - What critics say
-- Any caveats (especially if similar to my disliked shows)
+- Any caveats (especially if similar to my disliked shows or address concerns in my notes)
 
 Format as numbered list with **bold titles**.`;
 

@@ -17,6 +17,7 @@ export interface Show {
   imdb_id: string | null;
   streaming_services: string[];
   ai_summary: string | null;
+  comment: string | null;
   created_at: string;
   updated_at: string;
 }

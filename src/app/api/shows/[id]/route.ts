@@ -53,10 +53,12 @@ export async function PATCH(
     const updates: Partial<{
       status: ShowStatus;
       ai_summary: string;
+      comment: string | null;
     }> = {};
 
     if (body.status) updates.status = body.status;
     if (body.ai_summary) updates.ai_summary = body.ai_summary;
+    if ('comment' in body) updates.comment = body.comment;
 
     const { data: show, error } = await supabase
       .from('shows')
