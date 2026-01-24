@@ -93,7 +93,7 @@ ${dislikedList || '(None yet)'}
 ## My Watchlist:
 ${toWatchList}
 
-IMPORTANT: Pay attention to any notes I've included (e.g., "Great aesthetic but very violent"). These notes provide important context about my preferences and concerns. Use them to refine recommendations and warn about similar traits in watchlist shows.
+IMPORTANT: Pay attention to any notes I've included (e.g., "Great aesthetic but aimless"). These notes provide important context about my preferences and concerns. Use them to refine recommendations or warn about similar traits in watchlist shows.
 
 Give me a quick ranked list (top 3-5) with one sentence each explaining why. Prioritize shows similar to my loved/liked ones and avoid anything similar to what I didn't like. Format: **Title** - reason.`;
 

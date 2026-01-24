@@ -294,7 +294,7 @@ export default function ShowCard({
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder="Add a note (e.g., 'Great aesthetic but very violent')"
+                  placeholder="Add a note for recommendations (e.g., 'Slow pacing' or 'Great soundtrack')"
                   className="w-full text-xs p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground resize-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   rows={2}
                   maxLength={500}

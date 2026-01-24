@@ -345,6 +345,32 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
 
           {recommendation && (
             <div>
+              {/* Action buttons at top */}
+              <div className="mb-4 flex items-center gap-2">
+                <button
+                  onClick={() => handleGetRecommendation(false)}
+                  className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-lg transition-all shadow-md shadow-indigo-500/25 flex items-center gap-2 text-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  New Pick
+                </button>
+                <button
+                  onClick={() => {
+                    setRecommendation(null);
+                    setDeepAnalysis(null);
+                    setShowFilters(true);
+                  }}
+                  className="px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all font-medium flex items-center gap-1.5 text-sm"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                  Edit Filters
+                </button>
+              </div>
+
               {/* Filter indicator */}
               {hasCustomFilters && (
                 <div className="mb-3 flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
@@ -352,16 +378,6 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                   </svg>
                   Custom filters applied
-                  <button
-                    onClick={() => {
-                      setRecommendation(null);
-                      setDeepAnalysis(null);
-                      setShowFilters(true);
-                    }}
-                    className="underline hover:no-underline"
-                  >
-                    Edit
-                  </button>
                 </div>
               )}
 
@@ -484,39 +500,6 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                   </div>
                 </div>
               )}
-
-              <div className="mt-6 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      setRecommendation(null);
-                      setDeepAnalysis(null);
-                      setShowFilters(true);
-                    }}
-                    className="px-3 py-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all font-medium flex items-center gap-1.5 text-sm"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                    Filters
-                  </button>
-                  <button
-                    onClick={() => handleGetRecommendation(false)}
-                    className="px-4 py-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all font-medium flex items-center gap-2 text-sm"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    New Pick
-                  </button>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-lg transition-all shadow-md shadow-indigo-500/25 text-sm"
-                >
-                  Done
-                </button>
-              </div>
             </div>
           )}
         </div>
