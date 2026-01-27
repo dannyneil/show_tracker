@@ -125,13 +125,13 @@ export default function ShowCard({
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-5 flex flex-col min-w-0">
-          <div className="flex justify-between items-start gap-2 mb-3">
-            <div className="min-w-0">
-              <h3 className="font-semibold text-lg text-foreground truncate">
+        <div className="flex-1 p-3 sm:p-5 flex flex-col min-w-0">
+          <div className="flex justify-between items-start gap-2 mb-2 sm:mb-3">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-base sm:text-lg text-foreground truncate">
                 {show.title}
               </h3>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 {show.year && <span>{show.year}</span>}
               </p>
             </div>
@@ -147,7 +147,7 @@ export default function ShowCard({
           </div>
 
           {/* Ratings and Trailer */}
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-2 sm:mb-3">
             {show.imdb_rating && (
               <a
                 href={show.imdb_id
@@ -205,7 +205,7 @@ export default function ShowCard({
 
           {/* Streaming Services */}
           {show.streaming_services && show.streaming_services.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-3">
+            <div className="flex flex-wrap gap-1.5 mb-2 sm:mb-3">
               {show.streaming_services.map((service) => (
                 <a
                   key={service}
@@ -222,7 +222,7 @@ export default function ShowCard({
           )}
 
           {/* Tags */}
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="flex flex-wrap gap-1.5 mb-2 sm:mb-3">
             {show.tags.map((tag) => (
               <TagBadge
                 key={tag.id}
@@ -258,7 +258,7 @@ export default function ShowCard({
           </div>
 
           {/* Comment */}
-          <div className="mb-4">
+          <div className="mb-3 sm:mb-4">
             {!showCommentInput && !show.comment && (
               <button
                 onClick={() => {

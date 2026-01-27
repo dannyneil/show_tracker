@@ -37,20 +37,20 @@ const statuses: { value: ShowStatus; label: string; icon: string; activeClass: s
 
 export default function StatusSelector({ status, onChange, disabled }: StatusSelectorProps) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-1.5 sm:gap-2 flex-wrap">
       {statuses.map((s) => (
         <button
           key={s.value}
           onClick={() => onChange(s.value)}
           disabled={disabled}
-          className={`px-3 py-1.5 text-sm rounded-xl border transition-all flex items-center gap-1.5 font-medium ${
+          className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-xl border transition-all flex items-center gap-1 sm:gap-1.5 font-medium ${
             status === s.value
               ? s.activeClass
               : 'bg-gray-50/50 dark:bg-gray-800/50 text-gray-400 border-gray-200/50 dark:border-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:text-gray-600 dark:hover:text-gray-300'
           } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
         >
           <span className="text-xs">{s.icon}</span>
-          {s.label}
+          <span className="whitespace-nowrap">{s.label}</span>
         </button>
       ))}
     </div>

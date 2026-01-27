@@ -27,6 +27,7 @@ export default function Home() {
   const [isAdding, setIsAdding] = useState(false);
   const [showDecideHelper, setShowDecideHelper] = useState(false);
   const [showDiscoverModal, setShowDiscoverModal] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Filters
   const [selectedStatus, setSelectedStatus] = useState<ShowStatus | 'all'>('all');
@@ -206,6 +207,16 @@ export default function Home() {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              {/* Mobile filter button */}
+              <button
+                onClick={() => setShowMobileFilters(true)}
+                className="lg:hidden p-1.5 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                title="Filters"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+              </button>
               <button
                 onClick={() => setShowDiscoverModal(true)}
                 className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white text-sm font-medium rounded-lg transition-all shadow-md shadow-orange-500/20 hover:shadow-lg hover:shadow-orange-500/30 flex items-center gap-1.5"
@@ -348,6 +359,51 @@ export default function Home() {
           }}
           existingTmdbIds={shows.map((s) => s.tmdb_id)}
         />
+      )}
+
+      {/* Mobile Filters Drawer */}
+      {showMobileFilters && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 lg:hidden" onClick={() => setShowMobileFilters(false)}>
+          <div
+            className="absolute right-0 top-0 bottom-0 w-80 max-w-[85vw] bg-[#faf7f2] dark:bg-[#252320] shadow-2xl overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-[#faf7f2] dark:bg-[#252320] border-b border-amber-200/30 dark:border-amber-900/20 p-4 flex items-center justify-between">
+              <h2 className="font-semibold text-foreground flex items-center gap-2">
+                <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                Filters
+              </h2>
+              <button
+                onClick={() => setShowMobileFilters(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-5">
+              <FilterBar
+                tags={tags}
+                selectedStatus={selectedStatus}
+                selectedTagIds={selectedTagIds}
+                selectedService={selectedService}
+                streamingServices={streamingServices}
+                onStatusChange={setSelectedStatus}
+                onTagToggle={(tagId) =>
+                  setSelectedTagIds((prev) =>
+                    prev.includes(tagId)
+                      ? prev.filter((id) => id !== tagId)
+                      : [...prev, tagId]
+                  )
+                }
+                onServiceChange={setSelectedService}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
