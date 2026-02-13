@@ -54,6 +54,7 @@ export default function ShowCard({
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [comment, setComment] = useState(show.comment || '');
   const [isSavingComment, setIsSavingComment] = useState(false);
+  const [isRefreshingRatings, setIsRefreshingRatings] = useState(false);
 
   const availableTags = allTags.filter(
     (tag) => !show.tags.some((t) => t.id === tag.id)
@@ -95,6 +96,30 @@ export default function ShowCard({
       alert('Failed to save comment');
     } finally {
       setIsSavingComment(false);
+    }
+  };
+
+  const handleRefreshRatings = async () => {
+    setIsRefreshingRatings(true);
+    try {
+      const response = await fetch(`/api/shows/${show.id}/refresh-ratings`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        const updatedShow = await response.json();
+        show.imdb_rating = updatedShow.imdb_rating;
+        show.rotten_tomatoes_score = updatedShow.rotten_tomatoes_score;
+        show.imdb_id = updatedShow.imdb_id;
+        // Force a re-render by updating the window
+        window.location.reload();
+      } else {
+        alert('Failed to refresh ratings');
+      }
+    } catch {
+      alert('Failed to refresh ratings');
+    } finally {
+      setIsRefreshingRatings(false);
     }
   };
 
@@ -198,6 +223,26 @@ export default function ShowCard({
                     <path d="M8 5v14l11-7z" />
                   </svg>
                   <span className="text-xs font-medium text-purple-600 dark:text-purple-400">Trailer</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleRefreshRatings}
+              disabled={isRefreshingRatings}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-lg hover:from-emerald-100 hover:to-teal-100 dark:hover:from-emerald-900/50 dark:hover:to-teal-900/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh ratings from IMDb and Rotten Tomatoes"
+            >
+              {isRefreshingRatings ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hidden sm:inline">Refreshing...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-3 h-3 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hidden sm:inline">Refresh</span>
                 </>
               )}
             </button>
