@@ -160,6 +160,12 @@ export default function Home() {
     }
   };
 
+  const handleUpdateShow = (updatedShow: ShowWithTags) => {
+    setShows((prev) =>
+      prev.map((s) => (s.id === updatedShow.id ? updatedShow : s))
+    );
+  };
+
   const handleLogout = async () => {
     const supabase = createClientSupabase();
     await supabase.auth.signOut();
@@ -330,6 +336,7 @@ export default function Home() {
                     onDelete={() => handleDeleteShow(show.id)}
                     onAddTag={(tagId) => handleAddTag(show.id, tagId)}
                     onRemoveTag={(tagId) => handleRemoveTag(show.id, tagId)}
+                    onUpdate={handleUpdateShow}
                   />
                 ))}
               </div>

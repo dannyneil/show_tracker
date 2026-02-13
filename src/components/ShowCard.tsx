@@ -13,6 +13,7 @@ interface ShowCardProps {
   onDelete: () => void;
   onAddTag: (tagId: string) => void;
   onRemoveTag: (tagId: string) => void;
+  onUpdate: (updatedShow: ShowWithTags) => void;
 }
 
 // Get streaming service search URL for a show
@@ -49,6 +50,7 @@ export default function ShowCard({
   onDelete,
   onAddTag,
   onRemoveTag,
+  onUpdate,
 }: ShowCardProps) {
   const [isLoadingTrailer, setIsLoadingTrailer] = useState(false);
   const [showCommentInput, setShowCommentInput] = useState(false);
@@ -108,11 +110,7 @@ export default function ShowCard({
 
       if (response.ok) {
         const updatedShow = await response.json();
-        show.imdb_rating = updatedShow.imdb_rating;
-        show.rotten_tomatoes_score = updatedShow.rotten_tomatoes_score;
-        show.imdb_id = updatedShow.imdb_id;
-        // Force a re-render by updating the window
-        window.location.reload();
+        onUpdate(updatedShow);
       } else {
         alert('Failed to refresh ratings');
       }
