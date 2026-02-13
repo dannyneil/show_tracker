@@ -16,6 +16,12 @@ const statuses: { value: ShowStatus; label: string; icon: string; activeClass: s
     activeClass: 'bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/40 dark:to-yellow-900/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700 shadow-sm shadow-amber-100 dark:shadow-none'
   },
   {
+    value: 'starred',
+    label: 'Star',
+    icon: '⭐',
+    activeClass: 'bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/40 dark:to-pink-900/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700 shadow-sm shadow-purple-100 dark:shadow-none'
+  },
+  {
     value: 'watching',
     label: 'Watching',
     icon: '▶️',

@@ -1,6 +1,6 @@
 // Database types
 
-export type ShowStatus = 'to_watch' | 'watching' | 'watched' | 'parked';
+export type ShowStatus = 'to_watch' | 'watching' | 'watched' | 'parked' | 'starred';
 export type ShowType = 'movie' | 'tv';
 
 export interface Show {

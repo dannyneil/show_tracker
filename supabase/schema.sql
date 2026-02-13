@@ -5,7 +5,7 @@
 create extension if not exists "uuid-ossp";
 
 -- Create enum types
-create type show_status as enum ('to_watch', 'watching', 'watched', 'parked');
+create type show_status as enum ('to_watch', 'watching', 'watched', 'parked', 'starred');
 create type show_type as enum ('movie', 'tv');
 create type tag_category as enum ('who', 'genre', 'mood', 'meta');
 
