@@ -30,16 +30,14 @@ export async function POST(
     );
 
     // Update the show with new ratings
-    const { data: updatedShow, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from('shows')
       .update({
         imdb_rating: ratings.imdbRating,
         rotten_tomatoes_score: ratings.rottenTomatoesScore,
         imdb_id: ratings.imdbId,
       })
-      .eq('id', id)
-      .select()
-      .single();
+      .eq('id', id);
 
     if (updateError) {
       return NextResponse.json(
@@ -48,7 +46,32 @@ export async function POST(
       );
     }
 
-    return NextResponse.json(updatedShow);
+    // Fetch the full show with tags
+    const { data: updatedShow, error: fetchUpdatedError } = await supabase
+      .from('shows')
+      .select(`
+        *,
+        tags:show_tags(
+          tag:tags(*)
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (fetchUpdatedError) {
+      return NextResponse.json(
+        { error: fetchUpdatedError.message },
+        { status: 500 }
+      );
+    }
+
+    // Transform to match the ShowWithTags type
+    const showWithTags = {
+      ...updatedShow,
+      tags: updatedShow.tags.map((st: any) => st.tag),
+    };
+
+    return NextResponse.json(showWithTags);
   } catch (error) {
     console.error('Error refreshing ratings:', error);
     return NextResponse.json(
