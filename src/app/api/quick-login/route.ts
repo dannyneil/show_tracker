@@ -159,16 +159,27 @@ export async function POST(request: NextRequest) {
     );
 
     // Generate an OTP link to extract the token
+    console.log('Attempting to generate link for email:', owner.email);
+    console.log('Using service role key:', serviceRoleKey.substring(0, 10) + '...');
+
     const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'magiclink',
       email: owner.email,
     });
 
-    if (linkError || !linkData || !linkData.properties) {
+    if (linkError) {
       console.error('Error generating link:', linkError);
-      console.error('Link data:', linkData);
+      console.error('Error details:', JSON.stringify(linkError, null, 2));
       return NextResponse.json({
-        error: `Failed to create session: ${linkError?.message || 'No link data returned'}`
+        error: `Supabase admin error: ${linkError.message || 'Unknown error'}`,
+        details: linkError
+      }, { status: 500 });
+    }
+
+    if (!linkData || !linkData.properties) {
+      console.error('Link data is missing:', linkData);
+      return NextResponse.json({
+        error: 'No link data returned from Supabase'
       }, { status: 500 });
     }
 
@@ -210,7 +221,25 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log('Successfully extracted tokens');
+    // Validate tokens are in JWT format (should have 3 parts separated by dots)
+    const isValidJWT = (token: string) => {
+      const parts = token.split('.');
+      return parts.length === 3 && parts.every(part => part.length > 0);
+    };
+
+    console.log('Access token format valid:', isValidJWT(accessToken));
+    console.log('Refresh token format valid:', isValidJWT(refreshToken));
+
+    if (!isValidJWT(accessToken) || !isValidJWT(refreshToken)) {
+      console.error('Tokens are not in valid JWT format');
+      console.error('Access token:', accessToken);
+      console.error('Refresh token:', refreshToken);
+      return NextResponse.json({
+        error: 'Invalid token format received from authentication service. This might indicate a configuration issue with the service role key.'
+      }, { status: 500 });
+    }
+
+    console.log('Successfully extracted and validated tokens');
 
     // Return the session tokens for the client to set
     // This avoids cross-origin cookie issues in incognito mode

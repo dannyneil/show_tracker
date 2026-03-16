@@ -36,21 +36,37 @@ export default function QuickLoginPage() {
 
       if (data.accessToken && data.refreshToken) {
         // Set the session using the tokens
+        console.log('Attempting to set session with tokens from server');
         const supabase = createClientSupabase();
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: data.accessToken,
-          refresh_token: data.refreshToken,
-        });
 
-        if (sessionError) {
-          console.error('Error setting session:', sessionError);
-          setError(`Session error: ${sessionError.message}`);
+        try {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: data.accessToken,
+            refresh_token: data.refreshToken,
+          });
+
+          if (sessionError) {
+            console.error('Error setting session:', sessionError);
+            console.error('Session error details:', JSON.stringify(sessionError, null, 2));
+
+            // Provide more specific error messages
+            if (sessionError.message.includes('pattern') || sessionError.message.includes('JWT') || sessionError.message.includes('format')) {
+              setError('Invalid authentication tokens received from server. This may indicate a configuration issue. Please contact support.');
+            } else {
+              setError(`Session error: ${sessionError.message}`);
+            }
+            setIsLoading(false);
+            return;
+          }
+
+          console.log('Session set successfully, redirecting to home');
+          // Session established! Redirect to home
+          router.push('/');
+        } catch (sessionErr) {
+          console.error('Exception while setting session:', sessionErr);
+          setError(`Failed to establish session: ${sessionErr instanceof Error ? sessionErr.message : 'Unknown error'}`);
           setIsLoading(false);
-          return;
         }
-
-        // Session established! Redirect to home
-        router.push('/');
       } else {
         console.error('Missing tokens in response:', data);
         setError('Server did not return session tokens. Check server logs.');
