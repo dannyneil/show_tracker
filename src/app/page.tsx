@@ -32,7 +32,7 @@ export default function Home() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Filters
-  const [selectedStatus, setSelectedStatus] = useState<ShowStatus | 'all'>('all');
+  const [selectedStatus, setSelectedStatus] = useState<ShowStatus | 'all'>('to_watch');
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [selectedService, setSelectedService] = useState<string | null>(null);
 
