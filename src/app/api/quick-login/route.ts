@@ -2,6 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import bcrypt from 'bcryptjs';
 
+// Explicitly set runtime to nodejs (edge runtime doesn't support bcrypt)
+export const runtime = 'nodejs';
+
 // Rate limiting: Track attempts in memory (for simple implementation)
 // In production, you'd use Redis or similar
 const attemptCache = new Map<string, { count: number; resetAt: number }>();
@@ -27,6 +30,15 @@ function getClientIp(request: NextRequest): string {
   return request.headers.get('x-forwarded-for')?.split(',')[0] ||
          request.headers.get('x-real-ip') ||
          'unknown';
+}
+
+// GET - Health check endpoint to verify route exists
+export async function GET() {
+  return NextResponse.json({
+    message: 'Quick login API is available',
+    methods: ['POST'],
+    runtime: 'nodejs'
+  });
 }
 
 // POST - Authenticate with quick login
