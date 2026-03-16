@@ -46,12 +46,8 @@ Be honest about potential concerns if a show has traits similar to ones they dis
 Format your response in a clear, readable way.`;
 
     const message = await client.messages.create({
-      model: 'claude-opus-4-5-20251101', // Using Opus for better reasoning about preferences
+      model: 'claude-sonnet-4-20250514', // Using Sonnet 4 for reliable performance
       max_tokens: 4000,
-      thinking: {
-        type: 'enabled',
-        budget_tokens: 4000,
-      },
       system: systemPrompt,
       messages: [
         {
@@ -67,6 +63,11 @@ Format your response in a clear, readable way.`;
     return NextResponse.json({ response });
   } catch (error) {
     console.error('Error processing natural query:', error);
+    // Log more details about the error
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     return NextResponse.json(
       { error: 'Failed to process your query. Please try again.' },
       { status: 500 }
