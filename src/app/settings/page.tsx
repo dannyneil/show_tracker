@@ -48,9 +48,19 @@ export default function SettingsPage() {
   const [newTagName, setNewTagName] = useState('');
   const [isCreatingTag, setIsCreatingTag] = useState(false);
 
+  // Quick login management
+  const [quickLoginEnabled, setQuickLoginEnabled] = useState(false);
+  const [quickLoginSlug, setQuickLoginSlug] = useState<string | null>(null);
+  const [quickLoginUrl, setQuickLoginUrl] = useState<string | null>(null);
+  const [showQuickLoginForm, setShowQuickLoginForm] = useState(false);
+  const [newSlug, setNewSlug] = useState('');
+  const [newPassphrase, setNewPassphrase] = useState('');
+  const [isSettingUpQuickLogin, setIsSettingUpQuickLogin] = useState(false);
+
   useEffect(() => {
     fetchHousehold();
     fetchTags();
+    fetchQuickLoginConfig();
   }, []);
 
   const fetchHousehold = async () => {
@@ -81,6 +91,20 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch tags:', error);
+    }
+  };
+
+  const fetchQuickLoginConfig = async () => {
+    try {
+      const response = await fetch('/api/household/quick-login');
+      if (response.ok) {
+        const config = await response.json();
+        setQuickLoginEnabled(config.enabled);
+        setQuickLoginSlug(config.slug);
+        setQuickLoginUrl(config.url);
+      }
+    } catch (error) {
+      console.error('Failed to fetch quick login config:', error);
     }
   };
 
@@ -239,6 +263,57 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSetupQuickLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSlug.trim() || !newPassphrase.trim()) return;
+
+    setIsSettingUpQuickLogin(true);
+    try {
+      const response = await fetch('/api/household/quick-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug: newSlug.trim(),
+          passphrase: newPassphrase.trim(),
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        alert(result.error || 'Failed to set up quick login');
+      } else {
+        setNewSlug('');
+        setNewPassphrase('');
+        setShowQuickLoginForm(false);
+        fetchQuickLoginConfig();
+        alert('Quick login set up successfully! Make sure to bookmark the URL.');
+      }
+    } catch {
+      alert('Failed to set up quick login');
+    }
+    setIsSettingUpQuickLogin(false);
+  };
+
+  const handleDisableQuickLogin = async () => {
+    if (!confirm('Are you sure you want to disable quick login? The current URL will stop working.')) return;
+
+    try {
+      const response = await fetch('/api/household/quick-login', {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchQuickLoginConfig();
+        alert('Quick login disabled successfully');
+      } else {
+        const result = await response.json();
+        alert(result.error || 'Failed to disable quick login');
+      }
+    } catch {
+      alert('Failed to disable quick login');
+    }
+  };
+
   const isOwner = data?.currentUserRole === 'owner';
 
   if (isLoading) {
@@ -309,6 +384,149 @@ export default function SettingsPage() {
                 <p className="text-sm text-gray-500 mt-2">Only the owner can change the household name.</p>
               )}
             </section>
+
+            {/* Quick Login */}
+            {isOwner && (
+              <section className="bg-[#faf7f2]/80 dark:bg-[#252320]/80 backdrop-blur-lg rounded-2xl p-6 border border-amber-200/30 dark:border-amber-900/20 shadow-xl shadow-amber-900/5 dark:shadow-none">
+                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                  Quick Login
+                </h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Set up a memorable URL and passphrase for quick access without email.
+                  Perfect for devices where email access is difficult (like work computers).
+                </p>
+
+                {quickLoginEnabled && quickLoginUrl ? (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                      <div className="flex items-start gap-3">
+                        <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="font-medium text-green-700 dark:text-green-300 mb-2">Quick Login is enabled</p>
+                          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-green-200 dark:border-green-700">
+                            <p className="text-xs text-gray-500 mb-1">Your quick login URL:</p>
+                            <div className="flex items-center gap-2">
+                              <code className="flex-1 text-sm font-mono text-green-700 dark:text-green-300 break-all">
+                                {quickLoginUrl}
+                              </code>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(quickLoginUrl);
+                                  alert('URL copied to clipboard!');
+                                }}
+                                className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors shrink-0"
+                                title="Copy URL"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-xs text-green-600/80 dark:text-green-400/80 mt-2">
+                            💡 Bookmark this URL on all your devices for easy access!
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowQuickLoginForm(true)}
+                        className="px-4 py-2 text-sm bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-gray-700 transition-colors"
+                      >
+                        Change URL/Passphrase
+                      </button>
+                      <button
+                        onClick={handleDisableQuickLogin}
+                        className="px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800 transition-colors"
+                      >
+                        Disable Quick Login
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowQuickLoginForm(true)}
+                    className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-colors"
+                  >
+                    Set Up Quick Login
+                  </button>
+                )}
+
+                {/* Quick Login Setup Form */}
+                {showQuickLoginForm && (
+                  <div className="mt-4 p-4 bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <h3 className="font-medium text-foreground mb-3">
+                      {quickLoginEnabled ? 'Update Quick Login' : 'Set Up Quick Login'}
+                    </h3>
+                    <form onSubmit={handleSetupQuickLogin} className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          URL Slug (memorable, easy to type)
+                        </label>
+                        <input
+                          type="text"
+                          value={newSlug}
+                          onChange={(e) => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                          placeholder="neil-family"
+                          className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground"
+                          pattern="[a-z0-9-]{3,50}"
+                          required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          3-50 characters, lowercase letters, numbers, and hyphens only
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Passphrase (memorable words)
+                        </label>
+                        <input
+                          type="text"
+                          value={newPassphrase}
+                          onChange={(e) => setNewPassphrase(e.target.value)}
+                          placeholder="forest-river-mountain-2024"
+                          className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground"
+                          minLength={8}
+                          required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          At least 8 characters. Use memorable words you can type easily.
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          type="submit"
+                          disabled={isSettingUpQuickLogin}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-xl font-medium transition-colors"
+                        >
+                          {isSettingUpQuickLogin ? 'Saving...' : 'Save Quick Login'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowQuickLoginForm(false);
+                            setNewSlug('');
+                            setNewPassphrase('');
+                          }}
+                          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+              </section>
+            )}
 
             {/* Members */}
             <section className="bg-[#faf7f2]/80 dark:bg-[#252320]/80 backdrop-blur-lg rounded-2xl p-6 border border-amber-200/30 dark:border-amber-900/20 shadow-xl shadow-amber-900/5 dark:shadow-none">
