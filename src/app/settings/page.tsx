@@ -57,6 +57,7 @@ export default function SettingsPage() {
   const [newSlug, setNewSlug] = useState('');
   const [newPassphrase, setNewPassphrase] = useState('');
   const [isSettingUpQuickLogin, setIsSettingUpQuickLogin] = useState(false);
+  const [savedPassphrase, setSavedPassphrase] = useState<string | null>(null); // Store last saved passphrase
 
   useEffect(() => {
     fetchHousehold();
@@ -269,13 +270,14 @@ export default function SettingsPage() {
     if (!newSlug.trim() || !newPassphrase.trim()) return;
 
     setIsSettingUpQuickLogin(true);
+    const passphraseToSave = newPassphrase.trim(); // Store before clearing
     try {
       const response = await fetch('/api/household/quick-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           slug: newSlug.trim(),
-          passphrase: newPassphrase.trim(),
+          passphrase: passphraseToSave,
         }),
       });
 
@@ -283,11 +285,12 @@ export default function SettingsPage() {
       if (!response.ok) {
         alert(result.error || 'Failed to set up quick login');
       } else {
+        setSavedPassphrase(passphraseToSave); // Save passphrase for sharing
         setNewSlug('');
         setNewPassphrase('');
         setShowQuickLoginForm(false);
         fetchQuickLoginConfig();
-        alert('Quick login set up successfully! Make sure to bookmark the URL.');
+        alert('Quick login set up successfully! You can now share the login instructions below.');
       }
     } catch {
       alert('Failed to set up quick login');
@@ -304,6 +307,7 @@ export default function SettingsPage() {
       });
 
       if (response.ok) {
+        setSavedPassphrase(null); // Clear saved passphrase
         fetchQuickLoginConfig();
         alert('Quick login disabled successfully');
       } else {
@@ -445,6 +449,58 @@ export default function SettingsPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Share Instructions (only shown if passphrase was just saved) */}
+                    {savedPassphrase && (
+                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-start gap-3">
+                          <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                          </svg>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-blue-700 dark:text-blue-300 mb-2">Share via text/email</p>
+                            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
+                              <p className="text-xs text-gray-500 mb-2">Copy this message to share:</p>
+                              <div className="relative">
+                                <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words font-sans">
+{`Quick login for our watchlist:
+
+URL: ${quickLoginUrl}
+Passphrase: ${savedPassphrase}
+
+Just bookmark the URL and enter the passphrase when you visit it. You'll stay logged in for 6 months!`}
+                                </pre>
+                                <button
+                                  onClick={() => {
+                                    const message = `Quick login for our watchlist:\n\nURL: ${quickLoginUrl}\nPassphrase: ${savedPassphrase}\n\nJust bookmark the URL and enter the passphrase when you visit it. You'll stay logged in for 6 months!`;
+                                    navigator.clipboard.writeText(message);
+                                    alert('Message copied to clipboard! You can now paste it in a text or email.');
+                                  }}
+                                  className="absolute top-2 right-2 p-2 bg-blue-100 dark:bg-blue-800 hover:bg-blue-200 dark:hover:bg-blue-700 text-blue-700 dark:text-blue-300 rounded-lg transition-colors"
+                                  title="Copy message"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                            <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-2">
+                              ⚠️ Warning: This passphrase won't be shown again after you leave this page. Save it now!
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => setSavedPassphrase(null)}
+                            className="p-1 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800 rounded transition-colors shrink-0"
+                            title="Dismiss"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="flex gap-2">
                       <button
