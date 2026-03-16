@@ -28,7 +28,8 @@ export default function QuickLoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Invalid passphrase');
+        console.error('Server error:', data);
+        setError(data.error || `Server error: ${response.status}`);
         setIsLoading(false);
         return;
       }
@@ -43,7 +44,7 @@ export default function QuickLoginPage() {
 
         if (sessionError) {
           console.error('Error setting session:', sessionError);
-          setError('Failed to establish session. Please try again.');
+          setError(`Session error: ${sessionError.message}`);
           setIsLoading(false);
           return;
         }
@@ -51,12 +52,13 @@ export default function QuickLoginPage() {
         // Session established! Redirect to home
         router.push('/');
       } else {
-        setError('Unexpected response from server');
+        console.error('Missing tokens in response:', data);
+        setError('Server did not return session tokens. Check server logs.');
         setIsLoading(false);
       }
     } catch (err) {
       console.error('Quick login error:', err);
-      setError('Failed to connect. Please try again.');
+      setError(`Connection error: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setIsLoading(false);
     }
   };

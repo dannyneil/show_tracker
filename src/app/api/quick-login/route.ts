@@ -166,40 +166,51 @@ export async function POST(request: NextRequest) {
 
     if (linkError || !linkData || !linkData.properties) {
       console.error('Error generating link:', linkError);
+      console.error('Link data:', linkData);
       return NextResponse.json({
-        error: 'Failed to create session. Please try again.'
+        error: `Failed to create session: ${linkError?.message || 'No link data returned'}`
       }, { status: 500 });
     }
 
     // Parse the action_link to extract tokens
     // The action_link contains the tokens as query parameters
     const actionLink = linkData.properties.action_link;
+    console.log('Action link generated:', actionLink);
+
     const url = new URL(actionLink);
-    const accessToken = url.searchParams.get('access_token');
-    const refreshToken = url.searchParams.get('refresh_token');
+    let accessToken = url.searchParams.get('access_token');
+    let refreshToken = url.searchParams.get('refresh_token');
+
+    console.log('Query params - access_token:', accessToken ? 'present' : 'missing');
+    console.log('Query params - refresh_token:', refreshToken ? 'present' : 'missing');
 
     // Sometimes the token is in the hash instead
     if (!accessToken || !refreshToken) {
+      console.log('Trying to extract from hash fragment:', url.hash);
       // Try to get from hash
       const hashParams = new URLSearchParams(url.hash.substring(1));
       const hashAccessToken = hashParams.get('access_token');
       const hashRefreshToken = hashParams.get('refresh_token');
 
+      console.log('Hash params - access_token:', hashAccessToken ? 'present' : 'missing');
+      console.log('Hash params - refresh_token:', hashRefreshToken ? 'present' : 'missing');
+
       if (hashAccessToken && hashRefreshToken) {
-        return NextResponse.json({
-          success: true,
-          accessToken: hashAccessToken,
-          refreshToken: hashRefreshToken,
-        });
+        accessToken = hashAccessToken;
+        refreshToken = hashRefreshToken;
       }
     }
 
     if (!accessToken || !refreshToken) {
       console.error('Could not extract tokens from link');
+      console.error('Full URL:', actionLink);
+      console.error('linkData.properties:', JSON.stringify(linkData.properties, null, 2));
       return NextResponse.json({
-        error: 'Failed to create session. Please try again.'
+        error: 'Failed to extract authentication tokens. Check server logs for details.'
       }, { status: 500 });
     }
+
+    console.log('Successfully extracted tokens');
 
     // Return the session tokens for the client to set
     // This avoids cross-origin cookie issues in incognito mode
