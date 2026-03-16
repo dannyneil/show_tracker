@@ -89,13 +89,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Look up household by slug
+    console.log('Looking up household with slug:', trimmedSlug);
     const { data: household, error: householdError } = await supabase
       .from('households')
       .select('id, quick_login_passphrase_hash')
       .eq('quick_login_slug', trimmedSlug)
       .single();
 
+    console.log('Household lookup result:', {
+      found: !!household,
+      hasError: !!householdError,
+      error: householdError,
+      hasPassphraseHash: !!(household?.quick_login_passphrase_hash),
+      householdId: household?.id
+    });
+
     if (householdError || !household || !household.quick_login_passphrase_hash) {
+      console.error('Failed household lookup:', {
+        error: householdError,
+        household: household,
+        hasPassphraseHash: !!(household?.quick_login_passphrase_hash)
+      });
+
       // Log failed attempt
       await supabase
         .from('quick_login_attempts')
@@ -112,9 +127,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify passphrase
+    console.log('Verifying passphrase...');
+    console.log('Passphrase length:', passphrase.trim().length);
+    console.log('Hash present:', !!household.quick_login_passphrase_hash);
+
     const passphraseMatch = await bcrypt.compare(passphrase.trim(), household.quick_login_passphrase_hash);
+    console.log('Passphrase match result:', passphraseMatch);
 
     if (!passphraseMatch) {
+      console.error('Passphrase does not match');
+
       // Log failed attempt
       await supabase
         .from('quick_login_attempts')
@@ -129,6 +151,8 @@ export async function POST(request: NextRequest) {
         error: 'Invalid quick login credentials'
       }, { status: 401 });
     }
+
+    console.log('Passphrase verified successfully!');
 
     // Success! Now we need to find a user from this household to sign in as
     // Get the owner of this household (most appropriate user)
