@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { createClientSupabase } from '@/lib/supabase';
 
 export default function QuickLoginPage() {
   const params = useParams();
@@ -32,9 +33,23 @@ export default function QuickLoginPage() {
         return;
       }
 
-      if (data.redirectUrl) {
-        // Navigate to the redirect URL to establish session
-        window.location.href = data.redirectUrl;
+      if (data.accessToken && data.refreshToken) {
+        // Set the session using the tokens
+        const supabase = createClientSupabase();
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.accessToken,
+          refresh_token: data.refreshToken,
+        });
+
+        if (sessionError) {
+          console.error('Error setting session:', sessionError);
+          setError('Failed to establish session. Please try again.');
+          setIsLoading(false);
+          return;
+        }
+
+        // Session established! Redirect to home
+        router.push('/');
       } else {
         setError('Unexpected response from server');
         setIsLoading(false);

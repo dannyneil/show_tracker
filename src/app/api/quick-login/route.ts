@@ -158,28 +158,55 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Generate a session for this user
-    // Using the Admin API to create a session without email verification
-    const { data: sessionData, error: sessionError } = await adminClient.auth.admin.generateLink({
+    // Generate an OTP link to extract the token
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
       type: 'magiclink',
       email: owner.email,
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || ''}/`,
-      },
     });
 
-    if (sessionError || !sessionData) {
-      console.error('Error generating session:', sessionError);
+    if (linkError || !linkData || !linkData.properties) {
+      console.error('Error generating link:', linkError);
       return NextResponse.json({
         error: 'Failed to create session. Please try again.'
       }, { status: 500 });
     }
 
-    // Return the redirect URL which contains the auth tokens
-    // The client will navigate to this URL to establish the session
+    // Parse the action_link to extract tokens
+    // The action_link contains the tokens as query parameters
+    const actionLink = linkData.properties.action_link;
+    const url = new URL(actionLink);
+    const accessToken = url.searchParams.get('access_token');
+    const refreshToken = url.searchParams.get('refresh_token');
+
+    // Sometimes the token is in the hash instead
+    if (!accessToken || !refreshToken) {
+      // Try to get from hash
+      const hashParams = new URLSearchParams(url.hash.substring(1));
+      const hashAccessToken = hashParams.get('access_token');
+      const hashRefreshToken = hashParams.get('refresh_token');
+
+      if (hashAccessToken && hashRefreshToken) {
+        return NextResponse.json({
+          success: true,
+          accessToken: hashAccessToken,
+          refreshToken: hashRefreshToken,
+        });
+      }
+    }
+
+    if (!accessToken || !refreshToken) {
+      console.error('Could not extract tokens from link');
+      return NextResponse.json({
+        error: 'Failed to create session. Please try again.'
+      }, { status: 500 });
+    }
+
+    // Return the session tokens for the client to set
+    // This avoids cross-origin cookie issues in incognito mode
     return NextResponse.json({
       success: true,
-      redirectUrl: sessionData.properties.action_link,
+      accessToken,
+      refreshToken,
     });
 
   } catch (error) {
