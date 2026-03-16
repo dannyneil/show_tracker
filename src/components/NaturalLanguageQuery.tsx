@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { formatShowList } from '@/lib/claude';
+import { AI_MODEL_NAMES, AI_MODELS } from '@/config/models';
 import type { ShowWithTags } from '@/types';
 
 interface NaturalLanguageQueryProps {
@@ -136,6 +137,18 @@ export default function NaturalLanguageQuery({ onClose }: NaturalLanguageQueryPr
             </div>
           ) : (
             <div>
+              {/* Model Info Banner */}
+              <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                    Using {AI_MODEL_NAMES[AI_MODELS.EXPENSIVE]}
+                  </span>
+                </div>
+                <p className="text-xs text-green-600/80 dark:text-green-400/80">
+                  Premium model for thoughtful recommendations based on your preferences
+                </p>
+              </div>
+
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Your Query (fully editable)
@@ -146,9 +159,14 @@ export default function NaturalLanguageQuery({ onClose }: NaturalLanguageQueryPr
                   className="w-full h-64 px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-sm text-gray-700 dark:text-gray-300 font-mono resize-y"
                   placeholder="Type your query here..."
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  💡 Tip: Edit the pre-populated text above to customize what information Claude sees. Add your own question at the end!
-                </p>
+                <div className="mt-2 space-y-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    💡 <strong>Tip:</strong> Edit the pre-populated text to customize what Claude sees, then add your question at the end.
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    📋 You can also copy this query to paste into ChatGPT, Claude.ai, or any other chatbot.
+                  </p>
+                </div>
               </div>
 
               {!response && !isQuerying && (
