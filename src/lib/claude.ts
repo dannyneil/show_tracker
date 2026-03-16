@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ShowWithTags } from '@/types';
-import { AI_MODELS } from '@/config/models';
+import { AI_MODELS, AI_MODEL_NAMES } from '@/config/models';
 
 let anthropicClient: Anthropic | null = null;
 
@@ -64,6 +64,7 @@ export function formatShowList(shows: ShowWithTags[], includeRatings = false): s
 export interface RecommendationResult {
   response: string;
   prompt: string;
+  model?: string;
 }
 
 // Fast recommendation - no web search, uses existing ratings data
@@ -108,6 +109,7 @@ Give me a quick ranked list (top 3-5) with one sentence each explaining why. Pri
   return {
     response: textContent?.text || 'Unable to generate recommendations.',
     prompt,
+    model: AI_MODEL_NAMES[AI_MODELS.FAST],
   };
 }
 
@@ -172,6 +174,7 @@ Format as numbered list with **bold titles**.`;
   return {
     response: textContents.join('\n\n') || 'Unable to generate recommendations.',
     prompt,
+    model: AI_MODEL_NAMES[AI_MODELS.EXPENSIVE],
   };
 }
 

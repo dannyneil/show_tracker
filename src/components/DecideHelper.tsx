@@ -62,6 +62,8 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
   // Input context (what was sent to Claude)
   const [inputContext, setInputContext] = useState<InputContext | null>(null);
   const [showInputContext, setShowInputContext] = useState(false);
+  const [quickPickModel, setQuickPickModel] = useState<string | null>(null);
+  const [deepAnalysisModel, setDeepAnalysisModel] = useState<string | null>(null);
 
   // Load tags and previous recommendation on mount
   useEffect(() => {
@@ -129,8 +131,10 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
         setError(data.error);
       } else if (deep) {
         setDeepAnalysis(data.recommendation);
+        if (data.model) setDeepAnalysisModel(data.model);
       } else {
         setRecommendation(data.recommendation);
+        if (data.model) setQuickPickModel(data.model);
       }
       // Capture input context
       if (data.inputContext) {
@@ -383,8 +387,15 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
 
               <div className="bg-gradient-to-br from-gray-50 to-indigo-50/50 dark:from-gray-700/50 dark:to-indigo-900/20 rounded-2xl p-5 border border-gray-200/50 dark:border-gray-600/50">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                    <span>⚡</span> Quick Pick
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                      <span>⚡</span> Quick Pick
+                    </div>
+                    {quickPickModel && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {quickPickModel}
+                      </span>
+                    )}
                   </div>
                   {lastUpdated && (
                     <span className="text-xs text-gray-400 dark:text-gray-500">
@@ -492,8 +503,15 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
 
               {deepAnalysis && (
                 <div className="mt-4 bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-amber-900/20 dark:to-orange-900/10 rounded-2xl p-5 border border-amber-200/50 dark:border-amber-800/30">
-                  <div className="flex items-center gap-2 mb-3 text-sm font-medium text-amber-700 dark:text-amber-300">
-                    <span>🔍</span> Deep Dive (with critic reviews)
+                  <div className="flex flex-col gap-0.5 mb-3">
+                    <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
+                      <span>🔍</span> Deep Dive (with critic reviews)
+                    </div>
+                    {deepAnalysisModel && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {deepAnalysisModel}
+                      </span>
+                    )}
                   </div>
                   <div className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed text-sm">
                     {deepAnalysis}

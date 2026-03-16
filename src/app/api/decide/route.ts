@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    return NextResponse.json({ recommendation, deep, inputContext });
+    return NextResponse.json({ recommendation, deep, inputContext, model: result.model });
   } catch (error) {
     console.error('Error:', error);
     return NextResponse.json(

@@ -14,6 +14,7 @@ export default function NaturalLanguageQuery({ onClose }: NaturalLanguageQueryPr
   const [isQuerying, setIsQuerying] = useState(false);
   const [response, setResponse] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [model, setModel] = useState<string | null>(null);
 
   // Load user preferences on mount and build the pre-populated query
   useEffect(() => {
@@ -89,6 +90,7 @@ export default function NaturalLanguageQuery({ onClose }: NaturalLanguageQueryPr
         setError(data.error);
       } else {
         setResponse(data.response);
+        if (data.model) setModel(data.model);
       }
     } catch (err) {
       setError('Failed to process your query. Please try again.');
@@ -189,8 +191,15 @@ export default function NaturalLanguageQuery({ onClose }: NaturalLanguageQueryPr
               {response && (
                 <div className="mt-4">
                   <div className="bg-gradient-to-br from-gray-50 to-green-50/50 dark:from-gray-700/50 dark:to-green-900/20 rounded-2xl p-5 border border-gray-200/50 dark:border-gray-600/50">
-                    <div className="flex items-center gap-2 mb-3 text-sm font-medium text-green-600 dark:text-green-400">
-                      <span>✨</span> Claude&apos;s Response
+                    <div className="flex flex-col gap-0.5 mb-3">
+                      <div className="flex items-center gap-2 text-sm font-medium text-green-600 dark:text-green-400">
+                        <span>✨</span> Claude&apos;s Response
+                      </div>
+                      {model && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {model}
+                        </span>
+                      )}
                     </div>
                     <div className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed text-sm">
                       {response}

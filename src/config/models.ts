@@ -11,10 +11,9 @@ export const AI_MODELS = {
    * - Quick recommendations
    * - General queries
    *
-   * Current: Claude Sonnet 4 (May 2025)
-   * Upgrade when available: Sonnet 4.6 or newer
+   * Current: Claude Sonnet 4.6
    */
-  FAST: 'claude-sonnet-4-20250514',
+  FAST: 'claude-sonnet-4-6-20250514',
 
   /**
    * Premium model for complex reasoning and important decisions
@@ -22,10 +21,15 @@ export const AI_MODELS = {
    * - Critical decision-making (choosing shows to watch)
    * - Complex natural language queries
    *
-   * Current: Claude Opus 4.5 (November 2025)
-   * Upgrade when available: Opus 4.6 or newer
+   * Current: Claude Opus 4.6
    */
-  EXPENSIVE: 'claude-opus-4-5-20251101',
+  EXPENSIVE: 'claude-opus-4-6-20250514',
+} as const;
+
+// Human-readable model names for display
+export const AI_MODEL_NAMES = {
+  [AI_MODELS.FAST]: 'Claude Sonnet 4.6',
+  [AI_MODELS.EXPENSIVE]: 'Claude Opus 4.6',
 } as const;
 
 // Type for model selection

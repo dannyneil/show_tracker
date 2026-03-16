@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { AI_MODELS } from '@/config/models';
+import { AI_MODELS, AI_MODEL_NAMES } from '@/config/models';
 
 let anthropicClient: Anthropic | null = null;
 
@@ -61,7 +61,10 @@ Format your response in a clear, readable way.`;
     const textContent = message.content.find((c) => c.type === 'text');
     const response = textContent?.text || 'Unable to process your query.';
 
-    return NextResponse.json({ response });
+    return NextResponse.json({
+      response,
+      model: AI_MODEL_NAMES[AI_MODELS.EXPENSIVE],
+    });
   } catch (error) {
     console.error('Error processing natural query:', error);
     // Log more details about the error
