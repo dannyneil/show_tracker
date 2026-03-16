@@ -47,22 +47,28 @@ export async function GET() {
 
 // POST - Set up or update quick login
 export async function POST(request: NextRequest) {
+  console.log('=== QUICK LOGIN SETUP POST CALLED ===');
+
   try {
     const supabase = await createServerSupabaseClient();
     const body = await request.json();
+    console.log('Request body:', { slug: body.slug, passphraseLength: body.passphrase?.length });
 
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
+    console.log('Current user:', user?.id);
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     // Check user is owner
-    const { data: membership } = await supabase
+    const { data: membership, error: membershipError } = await supabase
       .from('household_members')
       .select('household_id, role')
       .eq('user_id', user.id)
       .single();
+
+    console.log('Membership lookup:', { membership, error: membershipError });
 
     if (!membership || membership.role !== 'owner') {
       return NextResponse.json({ error: 'Only owners can configure quick login' }, { status: 403 });
@@ -113,21 +119,36 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash the passphrase
+    console.log('Hashing passphrase...');
     const hashedPassphrase = await bcrypt.hash(trimmedPassphrase, 10);
+    console.log('Passphrase hashed successfully, hash length:', hashedPassphrase.length);
 
     // Update household with quick login credentials
-    const { error } = await supabase
+    console.log('Updating household:', membership.household_id);
+    const { data: updateResult, error } = await supabase
       .from('households')
       .update({
         quick_login_slug: trimmedSlug,
         quick_login_passphrase_hash: hashedPassphrase,
       })
-      .eq('id', membership.household_id);
+      .eq('id', membership.household_id)
+      .select();
+
+    console.log('Update result:', { data: updateResult, error });
 
     if (error) {
       console.error('Error updating quick login:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Verify the update worked
+    const { data: verifyHousehold } = await supabase
+      .from('households')
+      .select('id, quick_login_slug')
+      .eq('id', membership.household_id)
+      .single();
+
+    console.log('Verification read:', verifyHousehold);
 
     return NextResponse.json({
       success: true,
