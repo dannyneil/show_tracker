@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ShowWithTags } from '@/types';
+import { AI_MODELS } from '@/config/models';
 
 let anthropicClient: Anthropic | null = null;
 
@@ -22,7 +23,7 @@ export async function generateShowSummary(
   const client = getClient();
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: AI_MODELS.FAST,
     max_tokens: 300,
     messages: [
       {
@@ -98,7 +99,7 @@ IMPORTANT: Pay attention to any notes I've included (e.g., "Great aesthetic but 
 Give me a quick ranked list (top 3-5) with one sentence each explaining why. Prioritize shows similar to my loved/liked ones and avoid anything similar to what I didn't like. Format: **Title** - reason.`;
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: AI_MODELS.FAST,
     max_tokens: 1500,
     messages: [{ role: 'user', content: prompt }],
   });
@@ -148,7 +149,7 @@ Search for critical reviews of the top 2-3 most promising shows from my watchlis
 Format as numbered list with **bold titles**.`;
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: AI_MODELS.EXPENSIVE,
     max_tokens: 8000,
     thinking: {
       type: 'enabled',
@@ -179,7 +180,7 @@ export async function cleanupDeepAnalysis(rawAnalysis: string): Promise<string> 
   const client = getClient();
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: AI_MODELS.FAST,
     max_tokens: 2000,
     messages: [
       {

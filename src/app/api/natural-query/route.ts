@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { AI_MODELS } from '@/config/models';
 
 let anthropicClient: Anthropic | null = null;
 
@@ -46,7 +47,7 @@ Be honest about potential concerns if a show has traits similar to ones they dis
 Format your response in a clear, readable way.`;
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514', // Using Sonnet 4 for reliable performance
+      model: AI_MODELS.EXPENSIVE, // Using premium model for important decisions
       max_tokens: 4000,
       system: systemPrompt,
       messages: [
