@@ -25,7 +25,23 @@ export default function QuickLoginPage() {
         body: JSON.stringify({ slug, passphrase }),
       });
 
-      const data = await response.json();
+      // First get the response as text to see what we're actually getting
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      // Try to parse as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        console.error('Response text was:', responseText);
+        setError(`Server returned invalid response: ${responseText.substring(0, 200)}`);
+        setIsLoading(false);
+        return;
+      }
 
       if (!response.ok) {
         console.error('Server error:', data);

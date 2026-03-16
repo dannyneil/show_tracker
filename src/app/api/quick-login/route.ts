@@ -43,10 +43,18 @@ export async function GET() {
 
 // POST - Authenticate with quick login
 export async function POST(request: NextRequest) {
+  console.log('=== QUICK LOGIN POST HANDLER CALLED ===');
+  console.log('Request URL:', request.url);
+  console.log('Request method:', request.method);
+
   try {
+    console.log('Creating Supabase client...');
     const supabase = await createServerSupabaseClient();
+
+    console.log('Parsing request body...');
     const body = await request.json();
     const { slug, passphrase } = body;
+    console.log('Received slug:', slug);
 
     // Validate inputs
     if (!slug || typeof slug !== 'string') {
@@ -262,7 +270,15 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    console.error('=== CRITICAL ERROR IN QUICK LOGIN ===');
     console.error('Error processing quick login:', error);
-    return NextResponse.json({ error: 'Failed to process quick login' }, { status: 500 });
+    console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+
+    return NextResponse.json({
+      error: 'Failed to process quick login',
+      details: error instanceof Error ? error.message : String(error)
+    }, { status: 500 });
   }
 }
