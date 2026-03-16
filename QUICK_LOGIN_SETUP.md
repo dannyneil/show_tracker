@@ -6,7 +6,7 @@ Quick Login allows household members to access the app using a memorable URL and
 ## How It Works
 1. **Owner sets up Quick Login** in Settings
 2. **Creates memorable URL**: e.g., `yourapp.com/quick/neil-family`
-3. **Sets passphrase**: e.g., `forest-river-mountain-2024`
+3. **Auto-generates 4-word passphrase**: e.g., `eagle-sunset-compass-harmony`
 4. **Family members bookmark** the URL
 5. **Login once per device** (every 6 months) by entering the passphrase
 
@@ -58,7 +58,9 @@ npm run dev
 3. Click "Set Up Quick Login"
 4. Enter:
    - **Slug**: Memorable URL part (e.g., `neil-family`)
-   - **Passphrase**: Memorable phrase (e.g., `forest-river-mountain-2024`)
+   - **Passphrase**: Auto-generated 4-word phrase (e.g., `eagle-sunset-compass-harmony`)
+     - Click "New" to generate a different one if you don't like it
+     - Or edit/type your own custom passphrase
 5. Copy the generated URL
 6. Share it with household members to bookmark
 
@@ -162,8 +164,9 @@ As owner, go to Settings → Quick Login → "Change URL/Passphrase"
 
 **Solution**:
 1. You (as owner) set up quick login with slug `neil-family`
-2. Passphrase: `biglebowski-1998` (a movie you both love and remember)
+2. Auto-generated passphrase: `eagle-sunset-compass-harmony` (memorable and easy to type!)
+   - Don't like it? Click "New" to generate another like `ocean-tiger-castle-wisdom`
 3. URL becomes: `https://yourapp.com/quick/neil-family`
 4. She bookmarks this URL on her work computer
-5. Visits URL, enters `biglebowski-1998`, logged in for 6 months
+5. Visits URL, enters `eagle-sunset-compass-harmony`, logged in for 6 months
 6. No email needed! 🎉
