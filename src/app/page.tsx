@@ -8,6 +8,7 @@ import ShowCard from '@/components/ShowCard';
 import FilterBar from '@/components/FilterBar';
 import DecideHelper from '@/components/DecideHelper';
 import DiscoverModal from '@/components/DiscoverModal';
+import NaturalLanguageQuery from '@/components/NaturalLanguageQuery';
 import type { ShowWithTags, Tag, ShowStatus } from '@/types';
 
 interface SearchResult {
@@ -27,6 +28,7 @@ export default function Home() {
   const [isAdding, setIsAdding] = useState(false);
   const [showDecideHelper, setShowDecideHelper] = useState(false);
   const [showDiscoverModal, setShowDiscoverModal] = useState(false);
+  const [showNaturalQuery, setShowNaturalQuery] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Filters
@@ -238,6 +240,14 @@ export default function Home() {
                 <span className="hidden sm:inline">Decide</span>
               </button>
               <button
+                onClick={() => setShowNaturalQuery(true)}
+                className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white text-sm font-medium rounded-lg transition-all shadow-md shadow-green-500/20 hover:shadow-lg hover:shadow-green-500/30 flex items-center gap-1.5"
+                title="Ask anything in natural language"
+              >
+                <span className="text-xs">💬</span>
+                <span className="hidden sm:inline">Ask</span>
+              </button>
+              <button
                 onClick={() => router.push('/settings')}
                 className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
                 title="Settings"
@@ -366,6 +376,11 @@ export default function Home() {
           }}
           existingTmdbIds={shows.map((s) => s.tmdb_id)}
         />
+      )}
+
+      {/* Natural Language Query Modal */}
+      {showNaturalQuery && (
+        <NaturalLanguageQuery onClose={() => setShowNaturalQuery(false)} />
       )}
 
       {/* Mobile Filters Drawer */}
