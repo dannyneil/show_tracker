@@ -29,17 +29,29 @@ export async function POST(request: NextRequest) {
     const client = getClient();
 
     // Send the query directly to Claude with context about what this is for
+    // Use Opus 4.5 since this is about making important decisions (choosing what to watch for many hours)
     const systemPrompt = `You are helping a user find shows to watch based on their preferences.
 The user has provided you with information about shows they loved, liked, and didn't like, along with their watchlist.
 They may also ask you questions about what to watch.
 
-Provide helpful, concise recommendations or answers based on their query.
-When recommending shows, explain why based on their stated preferences.
+Pay close attention to:
+- Their loved/liked shows to understand their taste
+- Shows they didn't like and WHY (check their notes)
+- Any notes on shows (e.g., "too violent", "great aesthetic but aimless") - these provide crucial context
+- Tags that reveal patterns (genres, moods, who tagged it)
+
+Provide helpful, thoughtful recommendations or answers based on their query.
+When recommending shows, explain why based on their stated preferences and patterns you notice.
+Be honest about potential concerns if a show has traits similar to ones they disliked.
 Format your response in a clear, readable way.`;
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
+      model: 'claude-opus-4-5-20251101', // Using Opus for better reasoning about preferences
+      max_tokens: 4000,
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 4000,
+      },
       system: systemPrompt,
       messages: [
         {

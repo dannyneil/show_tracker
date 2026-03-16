@@ -1,21 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-interface Tag {
-  id: string;
-  name: string;
-  color: string;
-  category: string;
-}
-
-interface Show {
-  id: string;
-  title: string;
-  year: number | null;
-  status: string;
-  tags: Tag[];
-}
+import { formatShowList } from '@/lib/claude';
+import type { ShowWithTags } from '@/types';
 
 interface NaturalLanguageQueryProps {
   onClose: () => void;
@@ -33,44 +20,42 @@ export default function NaturalLanguageQuery({ onClose }: NaturalLanguageQueryPr
     const fetchPreferences = async () => {
       try {
         const response = await fetch('/api/shows');
-        const shows: Show[] = await response.json();
+        const shows: ShowWithTags[] = await response.json();
 
-        // Categorize shows by tags
+        // Categorize shows by tags (same logic as Decide helper)
         const lovedShows = shows.filter((s) => s.tags?.some((t) => t.name === 'Loved'));
         const likedShows = shows.filter((s) => s.tags?.some((t) => t.name === 'Liked'));
         const dislikedShows = shows.filter((s) => s.tags?.some((t) => t.name === "Didn't Like"));
         const toWatchShows = shows.filter((s) => s.status === 'to_watch');
 
-        // Build pre-populated query
-        let prePopulatedQuery = 'Based on my preferences:\n\n';
+        // Format using the same logic as the Decide helper
+        const lovedList = formatShowList(lovedShows);
+        const likedList = formatShowList(likedShows);
+        const dislikedList = formatShowList(dislikedShows);
+        const toWatchList = formatShowList(toWatchShows, true); // Include ratings for watchlist
 
-        if (lovedShows.length > 0) {
-          prePopulatedQuery += '**Shows I loved:**\n';
-          prePopulatedQuery += lovedShows.map((s) => `- ${s.title}${s.year ? ` (${s.year})` : ''}`).join('\n');
-          prePopulatedQuery += '\n\n';
-        }
+        // Build pre-populated query with the same format as Decide
+        let prePopulatedQuery = '';
 
-        if (likedShows.length > 0) {
-          prePopulatedQuery += '**Shows I liked:**\n';
-          prePopulatedQuery += likedShows.map((s) => `- ${s.title}${s.year ? ` (${s.year})` : ''}`).join('\n');
-          prePopulatedQuery += '\n\n';
-        }
+        prePopulatedQuery += '## Shows I LOVED (favorites):\n';
+        prePopulatedQuery += lovedList || '(None yet)';
+        prePopulatedQuery += '\n\n';
 
-        if (dislikedShows.length > 0) {
-          prePopulatedQuery += '**Shows I didn\'t like:**\n';
-          prePopulatedQuery += dislikedShows.map((s) => `- ${s.title}${s.year ? ` (${s.year})` : ''}`).join('\n');
-          prePopulatedQuery += '\n\n';
-        }
+        prePopulatedQuery += '## Shows I Liked:\n';
+        prePopulatedQuery += likedList || '(None yet)';
+        prePopulatedQuery += '\n\n';
 
-        if (toWatchShows.length > 0) {
-          prePopulatedQuery += '**Shows on my watchlist:**\n';
-          prePopulatedQuery += toWatchShows.slice(0, 10).map((s) => `- ${s.title}${s.year ? ` (${s.year})` : ''}`).join('\n');
-          if (toWatchShows.length > 10) {
-            prePopulatedQuery += `\n... and ${toWatchShows.length - 10} more`;
-          }
-          prePopulatedQuery += '\n\n';
-        }
+        prePopulatedQuery += '## Shows I Didn\'t Like (avoid similar):\n';
+        prePopulatedQuery += dislikedList || '(None yet)';
+        prePopulatedQuery += '\n\n';
 
+        prePopulatedQuery += '## My Watchlist:\n';
+        prePopulatedQuery += toWatchList || '(Empty)';
+        prePopulatedQuery += '\n\n';
+
+        prePopulatedQuery += 'IMPORTANT: Pay attention to any notes I\'ve included. These notes provide important context about my preferences and concerns.\n\n';
+
+        prePopulatedQuery += '---\n\n';
         prePopulatedQuery += '**My question:**\n';
         prePopulatedQuery += 'Show me a happy TV show that I would enjoy.\n\n';
         prePopulatedQuery += '(You can edit everything above to customize your query!)';

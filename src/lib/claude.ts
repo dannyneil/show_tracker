@@ -41,8 +41,8 @@ Keep your response concise and helpful.`,
   return textContent?.text || 'Unable to generate summary.';
 }
 
-// Helper to format show list
-function formatShowList(shows: ShowWithTags[], includeRatings = false): string {
+// Helper to format show list - exported for use in other components
+export function formatShowList(shows: ShowWithTags[], includeRatings = false): string {
   return shows
     .map((s) => {
       const parts = [`- "${s.title}" (${s.year || 'N/A'}) - ${s.type}`];
