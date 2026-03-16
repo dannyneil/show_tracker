@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { generatePassphrase } from '@/lib/passphrase-generator';
 
 interface Member {
   id: string;
@@ -314,6 +315,16 @@ export default function SettingsPage() {
     }
   };
 
+  const handleOpenQuickLoginForm = () => {
+    setShowQuickLoginForm(true);
+    // Auto-generate a new passphrase when opening the form
+    setNewPassphrase(generatePassphrase());
+  };
+
+  const handleRegeneratePassphrase = () => {
+    setNewPassphrase(generatePassphrase());
+  };
+
   const isOwner = data?.currentUserRole === 'owner';
 
   if (isLoading) {
@@ -437,7 +448,7 @@ export default function SettingsPage() {
 
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setShowQuickLoginForm(true)}
+                        onClick={handleOpenQuickLoginForm}
                         className="px-4 py-2 text-sm bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-gray-700 transition-colors"
                       >
                         Change URL/Passphrase
@@ -452,7 +463,7 @@ export default function SettingsPage() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => setShowQuickLoginForm(true)}
+                    onClick={handleOpenQuickLoginForm}
                     className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-medium transition-colors"
                   >
                     Set Up Quick Login
@@ -486,19 +497,32 @@ export default function SettingsPage() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Passphrase (memorable words)
+                          Passphrase (auto-generated)
                         </label>
-                        <input
-                          type="text"
-                          value={newPassphrase}
-                          onChange={(e) => setNewPassphrase(e.target.value)}
-                          placeholder="forest-river-mountain-2024"
-                          className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground"
-                          minLength={8}
-                          required
-                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newPassphrase}
+                            onChange={(e) => setNewPassphrase(e.target.value)}
+                            placeholder="eagle-sunset-compass-harmony"
+                            className="flex-1 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-foreground font-mono"
+                            minLength={8}
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={handleRegeneratePassphrase}
+                            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl transition-colors flex items-center gap-2 shrink-0"
+                            title="Generate new passphrase"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span className="hidden sm:inline">New</span>
+                          </button>
+                        </div>
                         <p className="text-xs text-gray-500 mt-1">
-                          At least 8 characters. Use memorable words you can type easily.
+                          Auto-generated 4-word passphrase. Click "New" to generate a different one, or edit it yourself.
                         </p>
                       </div>
 
