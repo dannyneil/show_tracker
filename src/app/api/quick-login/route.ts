@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Generate an OTP link to extract the token
+    // Generate a magic link OTP
     console.log('Attempting to generate link for email:', owner.email);
     console.log('Using service role key:', serviceRoleKey.substring(0, 10) + '...');
 
@@ -227,63 +227,52 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    // Parse the action_link to extract tokens
-    // The action_link contains the tokens as query parameters
-    const actionLink = linkData.properties.action_link;
-    console.log('Action link generated:', actionLink);
+    console.log('Link data received:', {
+      hasEmailOtp: !!linkData.properties.email_otp,
+      hasHashedToken: !!linkData.properties.hashed_token,
+      verificationType: linkData.properties.verification_type
+    });
 
-    const url = new URL(actionLink);
-    let accessToken = url.searchParams.get('access_token');
-    let refreshToken = url.searchParams.get('refresh_token');
-
-    console.log('Query params - access_token:', accessToken ? 'present' : 'missing');
-    console.log('Query params - refresh_token:', refreshToken ? 'present' : 'missing');
-
-    // Sometimes the token is in the hash instead
-    if (!accessToken || !refreshToken) {
-      console.log('Trying to extract from hash fragment:', url.hash);
-      // Try to get from hash
-      const hashParams = new URLSearchParams(url.hash.substring(1));
-      const hashAccessToken = hashParams.get('access_token');
-      const hashRefreshToken = hashParams.get('refresh_token');
-
-      console.log('Hash params - access_token:', hashAccessToken ? 'present' : 'missing');
-      console.log('Hash params - refresh_token:', hashRefreshToken ? 'present' : 'missing');
-
-      if (hashAccessToken && hashRefreshToken) {
-        accessToken = hashAccessToken;
-        refreshToken = hashRefreshToken;
-      }
-    }
-
-    if (!accessToken || !refreshToken) {
-      console.error('Could not extract tokens from link');
-      console.error('Full URL:', actionLink);
-      console.error('linkData.properties:', JSON.stringify(linkData.properties, null, 2));
+    // Use verifyOtp with the generated OTP to get actual session tokens
+    const emailOtp = linkData.properties.email_otp;
+    if (!emailOtp) {
+      console.error('No email_otp in link data');
       return NextResponse.json({
-        error: 'Failed to extract authentication tokens. Check server logs for details.'
+        error: 'Failed to generate OTP for authentication'
       }, { status: 500 });
     }
 
-    // Validate tokens are in JWT format (should have 3 parts separated by dots)
-    const isValidJWT = (token: string) => {
-      const parts = token.split('.');
-      return parts.length === 3 && parts.every(part => part.length > 0);
-    };
+    console.log('Verifying OTP to get session tokens...');
+    const { data: verifyData, error: verifyError } = await adminClient.auth.verifyOtp({
+      email: owner.email,
+      token: emailOtp,
+      type: 'email',
+    });
 
-    console.log('Access token format valid:', isValidJWT(accessToken));
-    console.log('Refresh token format valid:', isValidJWT(refreshToken));
+    console.log('Verify OTP result:', {
+      hasSession: !!verifyData?.session,
+      hasUser: !!verifyData?.user,
+      error: verifyError
+    });
 
-    if (!isValidJWT(accessToken) || !isValidJWT(refreshToken)) {
-      console.error('Tokens are not in valid JWT format');
-      console.error('Access token:', accessToken);
-      console.error('Refresh token:', refreshToken);
+    if (verifyError) {
+      console.error('Error verifying OTP:', verifyError);
       return NextResponse.json({
-        error: 'Invalid token format received from authentication service. This might indicate a configuration issue with the service role key.'
+        error: `Failed to verify OTP: ${verifyError.message}`
       }, { status: 500 });
     }
 
-    console.log('Successfully extracted and validated tokens');
+    if (!verifyData?.session) {
+      console.error('No session returned from verifyOtp');
+      return NextResponse.json({
+        error: 'Failed to create session'
+      }, { status: 500 });
+    }
+
+    const accessToken = verifyData.session.access_token;
+    const refreshToken = verifyData.session.refresh_token;
+
+    console.log('Successfully obtained session tokens');
 
     // Return the session tokens for the client to set
     // This avoids cross-origin cookie issues in incognito mode
