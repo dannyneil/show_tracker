@@ -1,15 +1,79 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClientSupabase } from '@/lib/supabase';
 
+type Step = 'email' | 'code';
+
 export default function LoginPage() {
+  const router = useRouter();
+  const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setMessage(null);
+
+    const supabase = createClientSupabase();
+
+    // Send OTP email (this sends a 6-digit code)
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        // Don't use email redirect - we want the user to enter the code manually
+        shouldCreateUser: true, // Allow new signups
+      },
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      setMessage({ type: 'error', text: error.message });
+    } else {
+      setStep('code');
+      setMessage({
+        type: 'success',
+        text: `We sent a 6-digit code to ${email}`,
+      });
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage(null);
+
+    const supabase = createClientSupabase();
+
+    // Verify the OTP code
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: 'email',
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      setMessage({ type: 'error', text: error.message });
+    } else {
+      // Success! Redirect to home
+      router.push('/');
+    }
+  };
+
+  const handleChangeEmail = () => {
+    setStep('email');
+    setCode('');
+    setMessage(null);
+  };
+
+  const handleResendCode = async () => {
     setIsLoading(true);
     setMessage(null);
 
@@ -18,7 +82,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        shouldCreateUser: true,
       },
     });
 
@@ -29,7 +93,7 @@ export default function LoginPage() {
     } else {
       setMessage({
         type: 'success',
-        text: 'Check your email for the login link!',
+        text: 'New code sent! Check your email.',
       });
     }
   };
@@ -50,45 +114,112 @@ export default function LoginPage() {
             <p className="text-gray-500 dark:text-gray-400 mt-2">The family watchlist</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-foreground mb-2">
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="danny@example.com"
-                required
-                className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all bg-white dark:bg-gray-800 text-foreground placeholder:text-gray-400"
-              />
-            </div>
+          {step === 'email' ? (
+            /* Step 1: Email Entry */
+            <form onSubmit={handleSendCode} className="space-y-5">
+              <div>
+                <label htmlFor="email" className="block text-sm font-semibold text-foreground mb-2">
+                  Email address
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="danny@example.com"
+                  required
+                  autoFocus
+                  className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all bg-white dark:bg-gray-800 text-foreground placeholder:text-gray-400"
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  Send magic link
-                </>
-              )}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={isLoading || !email.trim()}
+                className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Sending code...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Send login code
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            /* Step 2: Code Entry */
+            <form onSubmit={handleVerifyCode} className="space-y-5">
+              <div>
+                <label htmlFor="code" className="block text-sm font-semibold text-foreground mb-2">
+                  Enter the 6-digit code
+                </label>
+                <input
+                  id="code"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  required
+                  autoFocus
+                  className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all bg-white dark:bg-gray-800 text-foreground placeholder:text-gray-400 text-center text-2xl tracking-[0.5em] font-mono"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading || code.length !== 6}
+                className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Verify &amp; sign in
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center justify-between text-sm">
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={isLoading}
+                  className="text-indigo-600 dark:text-indigo-400 hover:underline disabled:opacity-50"
+                >
+                  Resend code
+                </button>
+                <button
+                  type="button"
+                  onClick={handleChangeEmail}
+                  className="text-gray-500 dark:text-gray-400 hover:underline"
+                >
+                  Change email
+                </button>
+              </div>
+            </form>
+          )}
 
           {message && (
             <div
@@ -112,13 +243,15 @@ export default function LoginPage() {
           )}
 
           <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-            We&apos;ll email you a magic link for password-free sign in.
+            {step === 'email'
+              ? "We'll email you a 6-digit code for password-free sign in."
+              : 'Check your email for the code. You can read it on your phone!'}
           </p>
         </div>
 
         {/* Footer */}
         <p className="mt-8 text-center text-xs text-gray-400 dark:text-gray-500">
-          Built with ❤️ for the Neil family
+          Built with love for the Neil family
         </p>
       </div>
     </div>
