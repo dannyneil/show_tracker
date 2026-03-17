@@ -38,7 +38,7 @@ export default function LoginPage() {
       setStep('code');
       setMessage({
         type: 'success',
-        text: `We sent a 6-digit code to ${email}`,
+        text: `We sent a login code to ${email}`,
       });
     }
   };
@@ -161,26 +161,26 @@ export default function LoginPage() {
             <form onSubmit={handleVerifyCode} className="space-y-5">
               <div>
                 <label htmlFor="code" className="block text-sm font-semibold text-foreground mb-2">
-                  Enter the 6-digit code
+                  Enter your login code
                 </label>
                 <input
                   id="code"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  maxLength={6}
+                  maxLength={8}
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                   placeholder="000000"
                   required
                   autoFocus
-                  className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all bg-white dark:bg-gray-800 text-foreground placeholder:text-gray-400 text-center text-2xl tracking-[0.5em] font-mono"
+                  className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all bg-white dark:bg-gray-800 text-foreground placeholder:text-gray-400 text-center text-2xl tracking-[0.3em] font-mono"
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading || code.length !== 6}
+                disabled={isLoading || code.length < 6}
                 className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (
@@ -244,7 +244,7 @@ export default function LoginPage() {
 
           <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
             {step === 'email'
-              ? "We'll email you a 6-digit code for password-free sign in."
+              ? "We'll email you a code for password-free sign in."
               : 'Check your email for the code. You can read it on your phone!'}
           </p>
         </div>
