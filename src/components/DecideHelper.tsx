@@ -27,31 +27,12 @@ interface DecideHelperProps {
   onClose: () => void;
 }
 
-function formatTimeAgo(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
-}
-
 export default function DecideHelper({ onClose }: DecideHelperProps) {
   const [recommendation, setRecommendation] = useState<string | null>(null);
-  const [deepAnalysis, setDeepAnalysis] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingDeep, setIsLoadingDeep] = useState(false);
-  const [isLoadingPrevious, setIsLoadingPrevious] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [model, setModel] = useState<string | null>(null);
 
-  // Tag filtering
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [lovedTags, setLovedTags] = useState<string[]>(['Loved']);
@@ -59,37 +40,14 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
   const [dislikedTags, setDislikedTags] = useState<string[]>(["Didn't Like"]);
   const [poolTags, setPoolTags] = useState<string[]>([]);
 
-  // Input context (what was sent to Claude)
   const [inputContext, setInputContext] = useState<InputContext | null>(null);
   const [showInputContext, setShowInputContext] = useState(false);
-  const [quickPickModel, setQuickPickModel] = useState<string | null>(null);
-  const [deepAnalysisModel, setDeepAnalysisModel] = useState<string | null>(null);
 
-  // Load tags and previous recommendation on mount
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [recResponse, tagsResponse] = await Promise.all([
-          fetch('/api/decide'),
-          fetch('/api/tags'),
-        ]);
-        const recData = await recResponse.json();
-        const tagsData = await tagsResponse.json();
-
-        if (recData.quickPick) {
-          setRecommendation(recData.quickPick);
-          setDeepAnalysis(recData.deepAnalysis);
-          setLastUpdated(recData.updatedAt);
-        }
-        if (Array.isArray(tagsData)) {
-          setAvailableTags(tagsData);
-        }
-      } catch {
-        // Silently fail - user can generate new recommendation
-      }
-      setIsLoadingPrevious(false);
-    };
-    fetchData();
+    fetch('/api/tags')
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setAvailableTags(data); })
+      .catch(() => {});
   }, []);
 
   const toggleTag = (tagName: string, currentTags: string[], setTags: (tags: string[]) => void) => {
@@ -100,57 +58,33 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
     }
   };
 
-  const handleGetRecommendation = async (deep = false) => {
-    if (deep) {
-      setIsLoadingDeep(true);
-    } else {
-      setIsLoading(true);
-      setRecommendation(null);
-      setDeepAnalysis(null);
-      setLastUpdated(null);
-      setInputContext(null);
-      setShowInputContext(false);
-    }
+  const handleGetRecommendation = async () => {
+    setIsLoading(true);
+    setRecommendation(null);
+    setInputContext(null);
+    setShowInputContext(false);
     setError(null);
 
     try {
       const response = await fetch('/api/decide', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          deep,
-          lovedTags,
-          likedTags,
-          dislikedTags,
-          poolTags,
-        }),
+        body: JSON.stringify({ lovedTags, likedTags, dislikedTags, poolTags }),
       });
       const data = await response.json();
 
       if (data.error) {
         setError(data.error);
-      } else if (deep) {
-        setDeepAnalysis(data.recommendation);
-        if (data.model) setDeepAnalysisModel(data.model);
       } else {
         setRecommendation(data.recommendation);
-        if (data.model) setQuickPickModel(data.model);
+        if (data.model) setModel(data.model);
+        if (data.inputContext) setInputContext(data.inputContext);
       }
-      // Capture input context
-      if (data.inputContext) {
-        setInputContext(data.inputContext);
-      }
-      // Update timestamp to now
-      setLastUpdated(new Date().toISOString());
     } catch {
       setError('Failed to get recommendations. Please try again.');
     }
 
-    if (deep) {
-      setIsLoadingDeep(false);
-    } else {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
   };
 
   const TagSelector = ({
@@ -163,30 +97,28 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
     description: string;
     selectedTags: string[];
     setSelectedTags: (tags: string[]) => void;
-  }) => {
-    return (
-      <div className="mb-3">
-        <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{label}</div>
-        <div className="text-xs text-gray-400 dark:text-gray-500 mb-2">{description}</div>
-        <div className="flex flex-wrap gap-1.5">
-          {availableTags.map((tag) => (
-            <button
-              key={tag.id}
-              onClick={() => toggleTag(tag.name, selectedTags, setSelectedTags)}
-              className={`px-2 py-0.5 text-xs rounded-full transition-all ${
-                selectedTags.includes(tag.name)
-                  ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-gray-800'
-                  : 'opacity-50 hover:opacity-75'
-              }`}
-              style={{ backgroundColor: tag.color + '30', color: tag.color }}
-            >
-              {tag.name}
-            </button>
-          ))}
-        </div>
+  }) => (
+    <div className="mb-3">
+      <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{label}</div>
+      <div className="text-xs text-gray-400 dark:text-gray-500 mb-2">{description}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {availableTags.map((tag) => (
+          <button
+            key={tag.id}
+            onClick={() => toggleTag(tag.name, selectedTags, setSelectedTags)}
+            className={`px-2 py-0.5 text-xs rounded-full transition-all ${
+              selectedTags.includes(tag.name)
+                ? 'ring-2 ring-offset-1 ring-indigo-500 dark:ring-offset-gray-800'
+                : 'opacity-50 hover:opacity-75'
+            }`}
+            style={{ backgroundColor: tag.color + '30', color: tag.color }}
+          >
+            {tag.name}
+          </button>
+        ))}
       </div>
-    );
-  };
+    </div>
+  );
 
   const hasCustomFilters =
     JSON.stringify(lovedTags) !== JSON.stringify(['Loved']) ||
@@ -224,14 +156,7 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
 
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[60vh]">
-          {isLoadingPrevious && (
-            <div className="text-center py-10">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-purple-600 border-t-transparent mx-auto" />
-              <p className="text-sm text-gray-500 mt-3">Loading...</p>
-            </div>
-          )}
-
-          {!isLoadingPrevious && !recommendation && !isLoading && !error && (
+          {!recommendation && !isLoading && !error && (
             <div className="text-center py-6">
               <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center">
                 <span className="text-4xl">🍿</span>
@@ -240,10 +165,9 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                 Can&apos;t decide what to watch?
               </h3>
               <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto text-sm">
-                Get personalized recommendations based on your taste.
+                Get personalized recommendations with critic reviews, based on your taste.
               </p>
 
-              {/* Filters Toggle */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`mb-4 px-3 py-1.5 text-xs rounded-lg transition-all flex items-center gap-1.5 mx-auto ${
@@ -259,7 +183,6 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                 {hasCustomFilters && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
               </button>
 
-              {/* Filters Panel */}
               {showFilters && (
                 <div className="text-left bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-6 border border-gray-200/50 dark:border-gray-700/50">
                   <TagSelector
@@ -301,13 +224,13 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
               )}
 
               <button
-                onClick={() => handleGetRecommendation(false)}
+                onClick={handleGetRecommendation}
                 className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-2xl transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-105 flex items-center gap-2 mx-auto"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                Get Recommendations
+                Get Recommendation
               </button>
             </div>
           )}
@@ -322,10 +245,10 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                 </div>
               </div>
               <p className="text-gray-600 dark:text-gray-300 font-medium">
-                Analyzing your taste...
+                Analyzing your taste &amp; searching reviews...
               </p>
               <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                This may take a few seconds
+                This may take 30–60 seconds
               </p>
             </div>
           )}
@@ -339,7 +262,7 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
               </div>
               <p className="text-red-600 dark:text-red-400 font-medium mb-6">{error}</p>
               <button
-                onClick={() => handleGetRecommendation(false)}
+                onClick={handleGetRecommendation}
                 className="px-6 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-foreground font-medium rounded-xl transition-all"
               >
                 Try Again
@@ -349,10 +272,9 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
 
           {recommendation && (
             <div>
-              {/* Action buttons at top */}
               <div className="mb-4 flex items-center gap-2">
                 <button
-                  onClick={() => handleGetRecommendation(false)}
+                  onClick={handleGetRecommendation}
                   className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium rounded-lg transition-all shadow-md shadow-indigo-500/25 flex items-center gap-2 text-sm"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -363,7 +285,6 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                 <button
                   onClick={() => {
                     setRecommendation(null);
-                    setDeepAnalysis(null);
                     setShowFilters(true);
                   }}
                   className="px-3 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all font-medium flex items-center gap-1.5 text-sm"
@@ -375,7 +296,6 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                 </button>
               </div>
 
-              {/* Filter indicator */}
               {hasCustomFilters && (
                 <div className="mb-3 flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -389,26 +309,18 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                      <span>⚡</span> Quick Pick
+                      <span>🔍</span> Recommendation
                     </div>
-                    {quickPickModel && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {quickPickModel}
-                      </span>
+                    {model && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{model}</span>
                     )}
                   </div>
-                  {lastUpdated && (
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
-                      {formatTimeAgo(lastUpdated)}
-                    </span>
-                  )}
                 </div>
                 <div className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed text-sm">
                   {recommendation}
                 </div>
               </div>
 
-              {/* Input Context (what was sent to Claude) */}
               {inputContext && (
                 <div className="mt-3">
                   <button
@@ -475,47 +387,6 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                       </div>
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* Deep Analysis Section */}
-              {!deepAnalysis && !isLoadingDeep && (
-                <button
-                  onClick={() => handleGetRecommendation(true)}
-                  className="mt-4 w-full px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 dark:from-amber-900/20 dark:to-orange-900/20 dark:hover:from-amber-900/30 dark:hover:to-orange-900/30 text-amber-700 dark:text-amber-300 font-medium rounded-xl border border-amber-200/50 dark:border-amber-800/50 transition-all flex items-center justify-center gap-2 text-sm"
-                >
-                  <span>🔍</span>
-                  Get deeper analysis with critic reviews
-                </button>
-              )}
-
-              {isLoadingDeep && (
-                <div className="mt-4 p-4 bg-amber-50/50 dark:bg-amber-900/10 rounded-xl border border-amber-200/30 dark:border-amber-800/30">
-                  <div className="flex items-center gap-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-amber-600 border-t-transparent" />
-                    <div>
-                      <p className="text-sm font-medium text-amber-700 dark:text-amber-300">Searching reviews...</p>
-                      <p className="text-xs text-amber-600/70 dark:text-amber-400/70">This may take 30-60 seconds</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {deepAnalysis && (
-                <div className="mt-4 bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-amber-900/20 dark:to-orange-900/10 rounded-2xl p-5 border border-amber-200/50 dark:border-amber-800/30">
-                  <div className="flex flex-col gap-0.5 mb-3">
-                    <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
-                      <span>🔍</span> Deep Dive (with critic reviews)
-                    </div>
-                    {deepAnalysisModel && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {deepAnalysisModel}
-                      </span>
-                    )}
-                  </div>
-                  <div className="whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed text-sm">
-                    {deepAnalysis}
-                  </div>
                 </div>
               )}
             </div>

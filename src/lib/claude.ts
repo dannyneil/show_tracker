@@ -67,52 +67,6 @@ export interface RecommendationResult {
   model?: string;
 }
 
-// Fast recommendation - no web search, uses existing ratings data
-export async function helpMeDecide(
-  lovedShows: ShowWithTags[],
-  likedShows: ShowWithTags[],
-  dislikedShows: ShowWithTags[],
-  toWatchShows: ShowWithTags[]
-): Promise<RecommendationResult> {
-  const client = getClient();
-
-  const lovedList = formatShowList(lovedShows);
-  const likedList = formatShowList(likedShows);
-  const dislikedList = formatShowList(dislikedShows);
-  const toWatchList = formatShowList(toWatchShows, true);
-
-  const prompt = `Help me decide what to watch next. Rank my watchlist based on my tastes.
-
-## Shows I LOVED (favorites):
-${lovedList || '(None yet)'}
-
-## Shows I Liked:
-${likedList || '(None yet)'}
-
-## Shows I Didn't Like (avoid similar):
-${dislikedList || '(None yet)'}
-
-## My Watchlist:
-${toWatchList}
-
-IMPORTANT: Pay attention to any notes I've included (e.g., "Great aesthetic but aimless"). These notes provide important context about my preferences and concerns. Use them to refine recommendations or warn about similar traits in watchlist shows.
-
-Give me a quick ranked list (top 3-5) with one sentence each explaining why. Prioritize shows similar to my loved/liked ones and avoid anything similar to what I didn't like. Format: **Title** - reason.`;
-
-  const message = await client.messages.create({
-    model: AI_MODELS.FAST,
-    max_tokens: 1500,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const textContent = message.content.find((c) => c.type === 'text');
-  return {
-    response: textContent?.text || 'Unable to generate recommendations.',
-    prompt,
-    model: AI_MODEL_NAMES[AI_MODELS.FAST],
-  };
-}
-
 // Deep analysis with web search for critical consensus
 export async function helpMeDecideDeep(
   lovedShows: ShowWithTags[],
