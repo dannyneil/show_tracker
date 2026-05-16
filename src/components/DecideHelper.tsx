@@ -30,6 +30,7 @@ interface DecideHelperProps {
 export default function DecideHelper({ onClose }: DecideHelperProps) {
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingContext, setIsLoadingContext] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [model, setModel] = useState<string | null>(null);
 
@@ -60,31 +61,43 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
 
   const handleGetRecommendation = async () => {
     setIsLoading(true);
+    setIsLoadingContext(true);
     setRecommendation(null);
     setInputContext(null);
     setShowInputContext(false);
     setError(null);
 
-    try {
-      const response = await fetch('/api/decide', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lovedTags, likedTags, dislikedTags, poolTags }),
-      });
-      const data = await response.json();
+    const body = JSON.stringify({ lovedTags, likedTags, dislikedTags, poolTags });
+    const headers = { 'Content-Type': 'application/json' };
 
-      if (data.error) {
-        setError(data.error);
-      } else {
-        setRecommendation(data.recommendation);
-        if (data.model) setModel(data.model);
-        if (data.inputContext) setInputContext(data.inputContext);
-      }
-    } catch {
-      setError('Failed to get recommendations. Please try again.');
-    }
+    const contextPromise = fetch('/api/decide/context', { method: 'POST', headers, body })
+      .then((r) => r.json())
+      .then((ctx) => {
+        if (!ctx.error) {
+          setInputContext(ctx);
+          setShowInputContext(true);
+        }
+      })
+      .finally(() => setIsLoadingContext(false));
 
-    setIsLoading(false);
+    const recommendationPromise = fetch('/api/decide', { method: 'POST', headers, body })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) {
+          setError(data.error);
+        } else {
+          setRecommendation(data.recommendation);
+          if (data.model) setModel(data.model);
+          // Update with full inputContext including the prompt
+          if (data.inputContext) setInputContext(data.inputContext);
+        }
+      })
+      .catch(() => {
+        setError('Failed to get recommendations. Please try again.');
+      })
+      .finally(() => setIsLoading(false));
+
+    await Promise.allSettled([contextPromise, recommendationPromise]);
   };
 
   const TagSelector = ({
@@ -236,20 +249,89 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
           )}
 
           {isLoading && (
-            <div className="text-center py-16">
-              <div className="relative w-20 h-20 mx-auto mb-6">
-                <div className="absolute inset-0 rounded-full border-4 border-purple-200 dark:border-purple-800" />
-                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-600 animate-spin" />
-                <div className="absolute inset-3 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center">
-                  <span className="text-2xl">🤔</span>
+            <div>
+              <div className="text-center py-8">
+                <div className="relative w-20 h-20 mx-auto mb-6">
+                  <div className="absolute inset-0 rounded-full border-4 border-purple-200 dark:border-purple-800" />
+                  <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-600 animate-spin" />
+                  <div className="absolute inset-3 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 flex items-center justify-center">
+                    <span className="text-2xl">🤔</span>
+                  </div>
                 </div>
+                <p className="text-gray-600 dark:text-gray-300 font-medium">
+                  Analyzing your taste &amp; searching reviews...
+                </p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                  This may take 30–60 seconds
+                </p>
               </div>
-              <p className="text-gray-600 dark:text-gray-300 font-medium">
-                Analyzing your taste &amp; searching reviews...
-              </p>
-              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                This may take 30–60 seconds
-              </p>
+
+              {/* Show input context as soon as it resolves, so user can read while waiting */}
+              {isLoadingContext && (
+                <p className="text-xs text-center text-gray-400 dark:text-gray-500 pb-4">
+                  Loading what&apos;s being sent to Claude...
+                </p>
+              )}
+              {inputContext && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => setShowInputContext(!showInputContext)}
+                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1"
+                  >
+                    <svg
+                      className={`w-3 h-3 transition-transform ${showInputContext ? 'rotate-90' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    {showInputContext ? 'Hide' : 'Show'} what was sent to Claude
+                  </button>
+                  {showInputContext && (
+                    <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs overflow-x-auto space-y-3">
+                      <div>
+                        <div className="text-gray-500 dark:text-gray-400 font-semibold mb-1">Input Data:</div>
+                        <div className="font-mono space-y-2">
+                          <div>
+                            <span className="text-gray-500 dark:text-gray-400">Filters: </span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              Loved={inputContext.filters.loved.join('+')} |
+                              Liked={inputContext.filters.liked.join('+')} |
+                              Disliked={inputContext.filters.disliked.join('+')} |
+                              Pool={inputContext.filters.pool.join('+')}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-green-600 dark:text-green-400">Loved ({inputContext.lovedShows.length}): </span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {inputContext.lovedShows.length > 0 ? inputContext.lovedShows.join(', ') : '(none)'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-blue-600 dark:text-blue-400">Liked ({inputContext.likedShows.length}): </span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {inputContext.likedShows.length > 0 ? inputContext.likedShows.join(', ') : '(none)'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-red-600 dark:text-red-400">Disliked ({inputContext.dislikedShows.length}): </span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {inputContext.dislikedShows.length > 0 ? inputContext.dislikedShows.join(', ') : '(none)'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-purple-600 dark:text-purple-400">Watchlist Pool ({inputContext.poolShows.length}): </span>
+                            <span className="text-gray-700 dark:text-gray-300">
+                              {inputContext.poolShows.length > 0 ? inputContext.poolShows.join(', ') : '(none)'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
