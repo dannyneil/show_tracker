@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     const likedTagNames: string[] = body.likedTags || ['Liked'];
     const dislikedTagNames: string[] = body.dislikedTags || ["Didn't Like"];
     const poolTagNames: string[] = body.poolTags || [];
+    const bias: string | null = body.bias || null;
 
     const supabase = await createServerSupabaseClient();
 
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
         pool: poolTagNames.length > 0 ? poolTagNames : ['(all to_watch)'],
       },
       prompt: null,
+      bias,
     });
   } catch (error) {
     console.error('Error fetching recommendation context:', error);

@@ -72,7 +72,8 @@ export async function helpMeDecideDeep(
   lovedShows: ShowWithTags[],
   likedShows: ShowWithTags[],
   dislikedShows: ShowWithTags[],
-  toWatchShows: ShowWithTags[]
+  toWatchShows: ShowWithTags[],
+  bias?: string | null
 ): Promise<RecommendationResult> {
   const client = getClient();
 
@@ -80,6 +81,8 @@ export async function helpMeDecideDeep(
   const likedList = formatShowList(likedShows);
   const dislikedList = formatShowList(dislikedShows);
   const toWatchList = formatShowList(toWatchShows, true);
+
+  const biasSection = bias ? `\n## My Mood / Preference Tonight:\n${bias}\n` : '';
 
   const prompt = `I need help deciding what to watch. Search for reviews of my top watchlist items.
 
@@ -91,11 +94,11 @@ ${likedList || '(None yet)'}
 
 ## Shows I Didn't Like (avoid similar):
 ${dislikedList || '(None yet)'}
-
+${biasSection}
 ## My Watchlist:
 ${toWatchList}
 
-IMPORTANT: Pay attention to any notes I've included (e.g., "Great aesthetic but very violent"). These notes provide crucial context about my preferences and concerns. Use them to refine recommendations and warn about similar traits.
+IMPORTANT: Pay attention to any notes I've included (e.g., "Great aesthetic but very violent"). These notes provide crucial context about my preferences and concerns. Use them to refine recommendations and warn about similar traits.${bias ? ' Also weight my mood/preference tonight heavily when ranking — it should steer which shows rise to the top.' : ''}
 
 Search for critical reviews of the top 2-3 most promising shows from my watchlist. Then rank all shows with:
 - Why it matches my tastes (reference my loved/liked shows and my notes)

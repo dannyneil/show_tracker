@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
     const likedTagNames: string[] = body.likedTags || ['Liked'];
     const dislikedTagNames: string[] = body.dislikedTags || ["Didn't Like"];
     const poolTagNames: string[] = body.poolTags || [];
+    const bias: string | null = body.bias || null;
 
     const supabase = await createServerSupabaseClient();
 
@@ -99,11 +100,12 @@ export async function POST(request: NextRequest) {
           pool: poolTagNames.length > 0 ? poolTagNames : ['(all to_watch)'],
         },
         prompt: null,
+        bias,
       };
       return NextResponse.json({ recommendation: filterMsg, inputContext });
     }
 
-    const result = await helpMeDecideDeep(lovedShows, likedShows, dislikedShows, toWatchShows);
+    const result = await helpMeDecideDeep(lovedShows, likedShows, dislikedShows, toWatchShows, bias);
     const recommendation = await cleanupDeepAnalysis(result.response);
 
     const inputContext = {
@@ -118,6 +120,7 @@ export async function POST(request: NextRequest) {
         pool: poolTagNames.length > 0 ? poolTagNames : ['(all to_watch)'],
       },
       prompt: result.prompt,
+      bias,
     };
 
     return NextResponse.json({ recommendation, inputContext, model: result.model });
