@@ -74,7 +74,8 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
       .then((r) => r.json())
       .then((ctx) => {
         if (!ctx.error) {
-          setInputContext(ctx);
+          // Only apply if recommendation hasn't already set a richer inputContext (with prompt)
+          setInputContext((prev) => prev ? { ...ctx, prompt: prev.prompt } : ctx);
           setShowInputContext(true);
         }
       })
