@@ -21,6 +21,7 @@ interface InputContext {
     pool: string[];
   };
   prompt: string | null;
+  bias: string | null;
 }
 
 interface DecideHelperProps {
@@ -41,6 +42,7 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
   const [dislikedTags, setDislikedTags] = useState<string[]>(["Didn't Like"]);
   const [poolTags, setPoolTags] = useState<string[]>([]);
 
+  const [bias, setBias] = useState<string>('');
   const [inputContext, setInputContext] = useState<InputContext | null>(null);
   const [showInputContext, setShowInputContext] = useState(false);
 
@@ -67,7 +69,7 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
     setShowInputContext(false);
     setError(null);
 
-    const body = JSON.stringify({ lovedTags, likedTags, dislikedTags, poolTags });
+    const body = JSON.stringify({ lovedTags, likedTags, dislikedTags, poolTags, bias: bias || null });
     const headers = { 'Content-Type': 'application/json' };
 
     const contextPromise = fetch('/api/decide/context', { method: 'POST', headers, body })
@@ -237,6 +239,19 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                 </div>
               )}
 
+              <div className="mb-6 text-left max-w-md mx-auto">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                  What are you in the mood for?
+                </label>
+                <textarea
+                  value={bias}
+                  onChange={(e) => setBias(e.target.value)}
+                  placeholder="I'm feeling something fun tonight..."
+                  rows={2}
+                  className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 dark:focus:ring-purple-600 focus:border-transparent transition-all"
+                />
+              </div>
+
               <button
                 onClick={handleGetRecommendation}
                 className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-2xl transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-105 flex items-center gap-2 mx-auto"
@@ -291,6 +306,12 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                   </button>
                   {showInputContext && (
                     <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs overflow-x-auto space-y-3">
+                      {inputContext.bias && (
+                        <div>
+                          <div className="text-gray-500 dark:text-gray-400 font-semibold mb-1">Mood / Preference:</div>
+                          <div className="text-orange-600 dark:text-orange-400 font-mono">{inputContext.bias}</div>
+                        </div>
+                      )}
                       <div>
                         <div className="text-gray-500 dark:text-gray-400 font-semibold mb-1">Input Data:</div>
                         <div className="font-mono space-y-2">
@@ -422,6 +443,12 @@ export default function DecideHelper({ onClose }: DecideHelperProps) {
                   </button>
                   {showInputContext && (
                     <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs overflow-x-auto space-y-3">
+                      {inputContext.bias && (
+                        <div>
+                          <div className="text-gray-500 dark:text-gray-400 font-semibold mb-1">Mood / Preference:</div>
+                          <div className="text-orange-600 dark:text-orange-400 font-mono">{inputContext.bias}</div>
+                        </div>
+                      )}
                       {inputContext.prompt && (
                         <div>
                           <div className="text-gray-500 dark:text-gray-400 font-semibold mb-1">Prompt sent to Claude:</div>
