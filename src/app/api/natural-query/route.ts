@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const client = getClient();
 
     // Send the query directly to Claude with context about what this is for
-    // Use Opus 4.5 since this is about making important decisions (choosing what to watch for many hours)
+    // Use the premium model since this is about making important decisions (choosing what to watch for many hours)
     const systemPrompt = `You are helping a user find shows to watch based on their preferences.
 The user has provided you with information about shows they loved, liked, and didn't like, along with their watchlist.
 They may also ask you questions about what to watch.
@@ -48,7 +48,10 @@ Format your response in a clear, readable way.`;
 
     const message = await client.messages.create({
       model: AI_MODELS.EXPENSIVE, // Using premium model for important decisions
-      max_tokens: 4000,
+      // Budget covers thinking + response; adaptive thinking decides how much to spend
+      max_tokens: 16000,
+      thinking: { type: 'adaptive' },
+      output_config: { effort: 'high' },
       system: systemPrompt,
       messages: [
         {
