@@ -25,6 +25,9 @@ export async function generateShowSummary(
   const message = await client.messages.create({
     model: AI_MODELS.FAST,
     max_tokens: 300,
+    // Short formatting task — skip thinking so the whole budget goes to the summary
+    thinking: { type: 'disabled' },
+    output_config: { effort: 'low' },
     messages: [
       {
         role: 'user',
@@ -109,14 +112,13 @@ Format as numbered list with **bold titles**.`;
 
   const message = await client.messages.create({
     model: AI_MODELS.EXPENSIVE,
-    max_tokens: 8000,
-    thinking: {
-      type: 'enabled',
-      budget_tokens: 4000,
-    },
+    // Budget covers thinking + response; adaptive thinking decides how much to spend
+    max_tokens: 16000,
+    thinking: { type: 'adaptive' },
+    output_config: { effort: 'high' },
     tools: [
       {
-        type: 'web_search_20250305',
+        type: 'web_search_20260209',
         name: 'web_search',
         max_uses: 3,
       },
@@ -142,6 +144,9 @@ export async function cleanupDeepAnalysis(rawAnalysis: string): Promise<string> 
   const message = await client.messages.create({
     model: AI_MODELS.FAST,
     max_tokens: 2000,
+    // Pure reformatting — no reasoning needed
+    thinking: { type: 'disabled' },
+    output_config: { effort: 'low' },
     messages: [
       {
         role: 'user',
